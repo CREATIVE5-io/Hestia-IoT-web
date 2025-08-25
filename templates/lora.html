@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>LoRa Devices Configuration</title>
+    <link rel="stylesheet" href="/static/apple_style.css?v=1754543089">
+</head>
+<body>
+    <div class="container">
+        <h1>Hestia A2 - LoRa Module Configuration</h1>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <div class="error">
+        {% for message in messages %}
+        <p>{{ message }}</p>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+        <!-- Dongle Information -->
+        <h2>Dongle Information</h2>
+        <input type="hidden" name="action" value="update">
+        <div class="form-group">
+            <label for="serial_interface">Serial Interface:</label>
+            <input type="text" id="serial_interface" name="serial_interface" value="{{ lora.serial_interface|default('/dev/ttyUSB0') }}" required>
+        </div>
+        <!-- Display Dongle ID
+        <div class="form-group">
+            <label>Dongle ID: <span class="readonly">{{ lora.dongle_id }}</span></label>
+        </div>
+        -->
+
+        <h2>Lora Configuration</h2>
+        
+        <div class="form-group">
+            <button type="button" id="setupLoraConfigBtn" class="setup-lora-btn">Lora Config Setup</button>
+        </div>
+        
+        <div class="form-group">
+            <label for="frequency">Frequency:</label>
+            <input type="text" id="frequency" name="frequency" value="{{ lora.frequency }}" required
+                   minlength="9" maxlength="9" pattern=".{9}"
+                   title="Frequency must be exactly 9 digit characters long">
+        </div>
+        <div class="form-group">
+            <label for="sf">Spreading Factor:</label>
+            <select id="sf" name="sf">
+                <option value="7" {% if lora.sf == "7" %}selected{% endif %}>7</option>
+                <option value="8" {% if lora.sf == "8" %}selected{% endif %}>8</option>
+                <option value="9" {% if lora.sf == "9" %}selected{% endif %}>9</option>
+                <option value="10" {% if lora.sf == "10" %}selected{% endif %}>10</option>
+                <option value="11" {% if lora.sf == "11" %}selected{% endif %}>11</option>
+                <option value="12" {% if lora.sf == "12" %}selected{% endif %}>12</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="ch_plan">Channel Plan:</label>
+            <select id="ch_plan" name="ch_plan">
+                <option value="0" {% if lora.ch_plan == "0" %}selected{% endif %}>AS923</option>
+                <option value="1" {% if lora.ch_plan == "1" %}selected{% endif %}>US915</option>
+                <option value="2" {% if lora.ch_plan == "2" %}selected{% endif %}>AU915</option>
+                <option value="3" {% if lora.ch_plan == "3" %}selected{% endif %}>EU868</option>
+                <option value="4" {% if lora.ch_plan == "4" %}selected{% endif %}>KR920</option>
+                <option value="5" {% if lora.ch_plan == "5" %}selected{% endif %}>IN865</option>
+                <option value="6" {% if lora.ch_plan == "6" %}selected{% endif %}>RU864</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <button type="submit">Save Changes</button>
+        </div>
+    </form>
+
+    {% if devices %}
+    <h2>Current LoRa Devices</h2>
+
+    <!-- Form to upload CSV file -->
+    <!--
+    <form method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="action" value="upload_csv">
+        <div class="upload-form-group">
+            <div class="form-group">
+                <label for="csv_file">Upload LoRa Devices CSV</label>
+                <input type="file" id="csv_file" name="csv_file" accept=".csv" required>
+            </div>
+            <button type="submit" class="upload-btn">Load CSV</button>
+        </div>
+    </form>
+    -->
+
+    <!-- Existing Devices -->
+    <form method="POST" id="setup-lora-form">
+        <input type="hidden" name="action" value="setupLoraDevices">
+        <button type="submit" class="setup-lora-btn">LoRa Devices Setup</button>
+    </form>
+
+    <!-- Existing Devices Table -->
+    <form method="POST">
+        <input type="hidden" name="action" value="delete">
+        <table>
+            <tr>
+                <th class="select-column">Select</th>
+                <th>Index</th>
+                <th>ID</th>
+                <th>Net Section Key</th>
+                <th>App Section Key</th>
+                <th>Transmit Interval</th>
+            </tr>
+            {% for num, data in devices.items() %}
+            <tr>
+                <td class="select-column"><input type="checkbox" name="device_nums" value="{{ num }}"></td>
+                <td>{{ data.idx }}</td>
+                <td>{{ data.id }}</td>
+                <td>{{ data.nsKey }}</td>
+                <td>{{ data.appKey }}</td>
+                <td>{{ data.transmit_interval|default('0') }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        <button type="submit" class="delete-btn">Delete Selected</button>
+    </form>
+    {% endif %}
+
+    <!-- Add New Device -->
+    {% if devices|length < 16 %}
+    <h2>Add New LoRa Device</h2>
+    <form method="POST">
+        <input type="hidden" name="action" value="add">
+        <div class="form-group">
+            <label for="device_idx">Device Index (0-15):</label>
+            <select id="device_idx" name="device_idx">
+                {% for i in range(16) %}
+                <option value="{{ i }}">{{ i }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="device_id">Device ID:</label>
+            <input type="text" id="device_id" name="device_id" required
+                   minlength="8" maxlength="8" pattern=".{8}"
+                   title="Device ID must be exactly 8 characters long">
+        </div>
+        <div class="form-group">
+            <label for="device_ns_key">Network Section Key:</label>
+            <input type="text" id="device_ns_key" name="device_ns_key" required
+                   minlength="32" maxlength="32" pattern=".{32}"
+                   title="Network Section Key must be exactly 32 characters long">
+        </div>
+        <div class="form-group">
+            <label for="device_app_key">Application Section Key:</label>
+            <input type="text" id="device_app_key" name="device_app_key" required
+                   minlength="32" maxlength="32" pattern=".{32}"
+                   title="App Section Key must be exactly 32 characters long">
+        </div>
+        <div class="form-group">
+            <label for="device_transmit_interval">Transmit Interval:</label>
+            <input type="number" id="device_transmit_interval" name="device_transmit_interval" value="0" min="0">
+        </div>
+        <button type="submit">Add Device</button>
+    </form>
+    {% else %}
+    <p>Maximum of 16 devices reached.</p>
+    {% endif %}
+
+    <!-- Popup -->
+    <div class="popup-overlay" id="popup-overlay"></div>
+    <div class="popup" id="popup">
+        <h3>Setting Up LoRa Devices</h3>
+        <div class="progress-bar">
+            <div class="progress" id="progress"></div>
+        </div>
+        <div class="status-message" id="status-message"></div>
+        <button class="okay-btn" id="okay-btn" onclick="closePopup()">Okay</button>
+    </div>
+
+    <script>
+        // Apple Style: 2-space indentation, descriptive variable names
+        
+        // Handle Lora Config Setup button
+        document.getElementById('setupLoraConfigBtn').addEventListener('click', function(event) {
+          event.preventDefault();
+          const form = this.closest('form');
+          const formData = new FormData(form);
+          formData.set('action', 'setupLoraConfig'); // Ensure the action is set
+          handleSetupProcess(form, formData);
+        });
+        
+        // Handle Lora Devices Setup form
+        document.getElementById('setup-lora-form').addEventListener('submit', function(event) {
+          event.preventDefault();
+          handleSetupProcess(this);
+        });
+        
+        function handleSetupProcess(form, customFormData = null) {
+          // Show popup and overlay
+          const popupOverlayElement = document.getElementById('popup-overlay');
+          const popupElement = document.getElementById('popup');
+          const progressElement = document.getElementById('progress');
+          const statusMessageElement = document.getElementById('status-message');
+          const okayButtonElement = document.getElementById('okay-btn');
+
+          popupOverlayElement.style.display = 'block';
+          popupElement.style.display = 'block';
+          progressElement.style.width = '0%';
+          statusMessageElement.style.display = 'none';
+          okayButtonElement.style.display = 'none';
+
+          let progressInterval = null;
+          let setupStarted = false;
+
+          // Function to poll for real progress updates
+          function pollProgress() {
+            fetch('/lora/progress')
+              .then(response => response.json())
+              .then(data => {
+                if (data.percentage !== undefined) {
+                  progressElement.style.width = data.percentage + '%';
+
+                  // Update status message with current progress message
+                  if (data.message && !data.completed) {
+                    statusMessageElement.textContent = data.message;
+                    statusMessageElement.style.display = 'block';
+                    statusMessageElement.className = 'status-message';
+                  }
+
+                  // Check if setup is completed
+                  if (data.completed) {
+                    clearInterval(progressInterval);
+                    progressElement.style.width = '100%';
+
+                    let finalMessage = data.setup_status || 'Setup completed';
+                    if (data.failed_devices && data.failed_devices.length > 0) {
+                      finalMessage += `\nFailed Devices: ${data.failed_devices.join(', ')}`;
+                    }
+
+                    statusMessageElement.textContent = finalMessage;
+                    statusMessageElement.style.display = 'block';
+                    statusMessageElement.className = 'status-message' + (data.error || (data.failed_devices && data.failed_devices.length > 0) ? ' error' : '');
+                    okayButtonElement.style.display = 'block';
+                  }
+                }
+              })
+              .catch(error => {
+                console.error('Error polling progress:', error);
+                // Continue polling unless setup hasn't started yet
+                if (setupStarted) {
+                  // If we're in the middle of setup and get an error, show it
+                  clearInterval(progressInterval);
+                  progressElement.style.width = '100%';
+                  statusMessageElement.textContent = 'Setup Completed: Failed\nError: Unable to get progress updates';
+                  statusMessageElement.style.display = 'block';
+                  statusMessageElement.className = 'status-message error';
+                  okayButtonElement.style.display = 'block';
+                }
+              });
+          }
+
+          // Start the setup process
+          fetch('/lora', {
+            method: 'POST',
+            body: customFormData || new FormData(form),
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest'
+            }
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.status === 'started') {
+              setupStarted = true;
+              // Clear any existing progress file and start polling
+              fetch('/lora/progress/clear', { method: 'GET' })
+                .then(() => {
+                  // Start polling for progress updates every 500ms
+                  progressInterval = setInterval(pollProgress, 500);
+                  // Also poll immediately
+                  pollProgress();
+                })
+                .catch(() => {
+                  // If clear fails, still start polling
+                  progressInterval = setInterval(pollProgress, 500);
+                  pollProgress();
+                });
+            } else {
+              // Handle case where setup completed immediately (shouldn't happen with threading)
+              progressElement.style.width = '100%';
+              statusMessageElement.textContent = data.message || 'Setup completed';
+              statusMessageElement.style.display = 'block';
+              statusMessageElement.className = 'status-message';
+              okayButtonElement.style.display = 'block';
+            }
+          })
+          .catch(error => {
+            progressElement.style.width = '100%';
+            statusMessageElement.textContent = 'Setup Completed: Failed\nError: Network error starting setup';
+            statusMessageElement.style.display = 'block';
+            statusMessageElement.className = 'status-message error';
+            okayButtonElement.style.display = 'block';
+          });
+        }
+
+        function closePopup() {
+          document.getElementById('popup-overlay').style.display = 'none';
+          document.getElementById('popup').style.display = 'none';
+          window.location.reload();
+        }
+    </script>
+    </div>
+</body>
+</html>

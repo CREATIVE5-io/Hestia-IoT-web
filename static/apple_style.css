@@ -1,0 +1,509 @@
+/* Apple Style */
+body {
+    font-family: -apple-system, Helvetica, sans-serif;
+    background-color: #F5F5F7;
+    margin: 0;
+    padding: 0;
+    color: #1D1D1F;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Container for main content */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+    min-height: 100vh;
+}
+
+/* Login page styles */
+.login-page {
+    display: block;
+    min-height: 100vh;
+    padding: 24px;
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+    /* Adjust container for mobile */
+    .container {
+        padding: 16px;
+    }
+
+    /* Mobile-friendly forms */
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        font-size: 16px;
+        margin-bottom: 8px;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        font-size: 16px; /* Prevents zoom on iOS */
+        padding: 12px 16px;
+        min-height: 44px; /* Apple's recommended touch target size */
+    }
+
+    /* Mobile-friendly buttons */
+    button {
+        min-height: 44px;
+        font-size: 16px;
+        padding: 12px 24px;
+        touch-action: manipulation; /* Prevents double-tap zoom */
+    }
+
+    /* Mobile-friendly tables */
+    table {
+        font-size: 14px;
+    }
+
+    table th,
+    table td {
+        padding: 8px 4px;
+        word-break: break-word;
+    }
+
+    /* Responsive table wrapper */
+    .table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Mobile typography */
+    h1 {
+        font-size: 24px;
+        line-height: 1.2;
+    }
+
+    h2 {
+        font-size: 20px;
+        line-height: 1.3;
+    }
+
+    /* Mobile-friendly login container */
+    .login-container {
+        max-width: none;
+        margin: 0;
+        padding: 24px 16px;
+    }
+
+    /* Mobile header with hamburger menu */
+    .mobile-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px;
+        background-color: #FFFFFF;
+        border-bottom: 1px solid #E5E5E7;
+        position: sticky;
+        top: 0;
+        z-index: 999;
+        margin: -16px -16px 24px -16px;
+    }
+
+    .mobile-header h1 {
+        font-size: 20px;
+        margin: 0;
+        color: #1D1D1F;
+    }
+
+    /* Hamburger menu button */
+    .hamburger {
+        display: flex;
+        flex-direction: column;
+        cursor: pointer;
+        padding: 8px;
+        background: none;
+        border: none;
+        border-radius: 6px;
+        transition: background-color 0.2s ease;
+    }
+
+    .hamburger:hover {
+        background-color: #F5F5F7;
+    }
+
+    .hamburger span {
+        width: 20px;
+        height: 2px;
+        background-color: #1D1D1F;
+        margin: 2px 0;
+        transition: 0.3s;
+        border-radius: 1px;
+    }
+
+    /* Hamburger animation when active */
+    .hamburger.active span:nth-child(1) {
+        transform: rotate(-45deg) translate(-4px, 4px);
+    }
+
+    .hamburger.active span:nth-child(2) {
+        opacity: 0;
+    }
+
+    .hamburger.active span:nth-child(3) {
+        transform: rotate(45deg) translate(-4px, -4px);
+    }
+
+    /* Mobile overlay */
+    .mobile-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .mobile-overlay.active {
+        display: block;
+        opacity: 1;
+    }
+
+
+    /* Hide desktop-only elements */
+    .desktop-only {
+        display: none;
+    }
+}
+
+/* Desktop styles */
+@media (min-width: 769px) {
+    /* Hide mobile-only elements */
+    .mobile-header {
+        display: none;
+    }
+
+    .mobile-overlay {
+        display: none !important;
+    }
+
+    .hamburger {
+        display: none;
+    }
+
+}
+
+/* Tablet styles */
+@media (max-width: 1024px) and (min-width: 769px) {
+    .container {
+        padding: 20px;
+    }
+
+    /* Tablet-friendly forms */
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        font-size: 15px;
+        padding: 10px 14px;
+    }
+
+    button {
+        font-size: 15px;
+        padding: 10px 20px;
+    }
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+    .mobile-header {
+        padding: 12px 16px;
+    }
+
+    .mobile-header h1 {
+        font-size: 18px;
+    }
+
+    .container {
+        padding: 12px;
+    }
+
+    .form-group {
+        margin-bottom: 16px;
+    }
+
+    .upload-form-group {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .upload-form-group .form-group {
+        margin-bottom: 0;
+    }
+
+    /* Stack form elements vertically on very small screens */
+    .form-group input,
+    .form-group select {
+        width: 100%;
+        box-sizing: border-box;
+    }
+}
+
+h1, h2 {
+    font-weight: 600;
+    color: #1D1D1F;
+}
+
+h1 {
+    font-size: 28px;
+    margin-bottom: 24px;
+}
+
+h2 {
+    font-size: 20px;
+    margin-top: 32px;
+    margin-bottom: 16px;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 14px;
+    color: #1D1D1F;
+}
+
+input, select {
+    width: 100%;
+    padding: 10px;
+    box-sizing: border-box;
+    border: 1px solid #D2D2D7;
+    border-radius: 6px;
+    font-size: 16px;
+    background-color: #FFFFFF;
+}
+
+form {
+    margin-bottom: 24px;
+}
+
+button {
+    background-color: #007AFF;
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    transition: background-color 0.2s;
+}
+
+button:hover {
+    background-color: #005BB5;
+}
+
+.delete-btn {
+    background-color: #FF3B30;
+}
+
+.delete-btn:hover {
+    background-color: #D32F2F;
+}
+
+table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-bottom: 24px;
+    background-color: #FFFFFF;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #D2D2D7;
+}
+
+th {
+    background-color: #F5F5F7;
+    font-weight: 600;
+    font-size: 14px;
+    color: #1D1D1F;
+}
+
+td {
+    font-size: 14px;
+    color: #1D1D1F;
+}
+
+.readonly {
+    background-color: #E8ECEF;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+a {
+    color: #007AFF;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* Login Dialog (consistent with previous styling) */
+.login-container {
+    background-color: white;
+    padding: 24px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    width: 300px;
+    text-align: center;
+    margin: 0 auto;
+}
+
+.login-container h2 {
+    margin-bottom: 24px;
+    font-size: 24px;
+    color: #1D1D1F;
+}
+
+.error {
+    color: #FF3B30;
+    margin-bottom: 16px;
+    font-size: 14px;
+}
+
+/* LoRa Popup (consistent with previous styling) */
+.popup {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 24px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+    width: 300px;
+    text-align: center;
+}
+
+.popup-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    z-index: 999;
+}
+
+.progress-bar {
+    width: 100%;
+    background-color: #F5F5F7;
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 12px 0;
+}
+
+.progress {
+    width: 0%;
+    height: 8px;
+    background: linear-gradient(to right, #007AFF, #34C759);
+    transition: width 0.3s ease;
+}
+
+.status-message {
+    margin: 12px 0;
+    display: none;
+    color: #1D1D1F;
+    font-size: 14px;
+}
+
+.status-message.error {
+    color: #FF3B30;
+}
+
+.okay-btn {
+    background-color: #007AFF;
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: none;
+    margin: 12px auto;
+    font-size: 16px;
+    min-width: 44px;
+    min-height: 44px;
+}
+
+.okay-btn:hover {
+    background-color: #005BB5;
+}
+
+/* Add to apple_style.css */
+.select-column {
+    text-align: left;
+    padding-left: 12px; /* Match the th/td padding */
+}
+.select-column input[type="checkbox"] {
+    margin: 0; /* Remove default margins */
+    vertical-align: middle; /* Align checkbox vertically with text */
+    width: 16px; /* Consistent size */
+    height: 16px;
+}
+
+.upload-form-group {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.upload-form-group .form-group {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+.upload-form-group button {
+    align-self: flex-end;
+}
+
+.info-container {
+    background-color: #FFFFFF;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.info-container h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1D1D1F;
+    margin-bottom: 16px;
+}
+
+.info-container p {
+    font-size: 16px;
+    color: #1D1D1F;
+    margin: 8px 0;
+}
+
+.info-container strong {
+    font-weight: 500;
+    margin-right: 8px;
+}
