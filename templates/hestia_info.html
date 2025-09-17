@@ -231,17 +231,74 @@
             }
         }
 
+        // Function to update data fields by finding and updating text content
+        function updateInfoFields(info) {
+            // Get all paragraph elements
+            const paragraphs = document.querySelectorAll('p');
+
+            paragraphs.forEach(function(p) {
+                const text = p.innerHTML;
+
+                // Update NTN Network Details
+                if (text.includes('<strong>IMSI:</strong>')) {
+                    p.innerHTML = '<strong>IMSI:</strong> ' + (info.imsi || '');
+                }
+                else if (text.includes('<strong>RSRP:</strong>')) {
+                    p.innerHTML = '<strong>RSRP:</strong> ' + (info.rsrp || '');
+                }
+                else if (text.includes('<strong>SINR:</strong>')) {
+                    p.innerHTML = '<strong>SINR:</strong> ' + (info.sinr || '');
+                }
+                else if (text.includes('<strong>Longitude:</strong>')) {
+                    p.innerHTML = '<strong>Longitude:</strong> ' + (info.longitude || '');
+                }
+                else if (text.includes('<strong>Latitude:</strong>')) {
+                    p.innerHTML = '<strong>Latitude:</strong> ' + (info.latitude || '');
+                }
+                else if (text.includes('<strong>Last Update:</strong>') && !text.includes('LoRa')) {
+                    p.innerHTML = '<strong>Last Update:</strong> ' + (info['last-update'] || '');
+                }
+
+                // Update LoRa Device Information
+                if (info['lora-info']) {
+                    const loraInfo = info['lora-info'];
+
+                    if (text.includes('<strong>Device Address:</strong>')) {
+                        p.innerHTML = '<strong>Device Address:</strong> ' + (loraInfo.devAddr || '');
+                    }
+                    else if (text.includes('<strong>Data:</strong>')) {
+                        p.innerHTML = '<strong>Data:</strong> ' + (loraInfo.data || '');
+                    }
+                    else if (text.includes('<strong>RSSI:</strong>')) {
+                        p.innerHTML = '<strong>RSSI:</strong> ' + (loraInfo.rssi || '');
+                    }
+                    else if (text.includes('<strong>SNR:</strong>')) {
+                        p.innerHTML = '<strong>SNR:</strong> ' + (loraInfo.snr || '');
+                    }
+                    else if (text.includes('<strong>Last Update:</strong>') && text.includes('LoRa')) {
+                        p.innerHTML = '<strong>Last Update:</strong> ' + (loraInfo['last-update'] || '');
+                    }
+                }
+            });
+        }
+
         // Function to fetch and update data without page reload
         function checkForUpdates() {
             fetch('/hestia_info_data')
                 .then(response => response.json())
                 .then(data => {
-                    // Update the hidden status element with new data
-                    const rawStatusElement = document.getElementById('raw-status');
-                    if (rawStatusElement && data.hestia_info && data.hestia_info['ntn-status']) {
-                        rawStatusElement.textContent = data.hestia_info['ntn-status'];
-                        // Update LED indicators with new data
-                        updateNTNStatusIndicators();
+                    if (data.hestia_info) {
+                        const info = data.hestia_info;
+
+                        // Update NTN Status LED indicators
+                        const rawStatusElement = document.getElementById('raw-status');
+                        if (rawStatusElement && info['ntn-status']) {
+                            rawStatusElement.textContent = info['ntn-status'];
+                            updateNTNStatusIndicators();
+                        }
+
+                        // Update all info fields
+                        updateInfoFields(info);
                     }
                 })
                 .catch(error => {
