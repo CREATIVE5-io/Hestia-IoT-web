@@ -31,6 +31,38 @@
             .sidebar { transform: translateX(-100%) !important; }
             .main-content { margin-left: 0 !important; }
         }
+
+        /* LED Indicator Styles */
+        .led-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            border: 1px solid #333;
+            box-shadow: 0 0 3px rgba(0,0,0,0.3);
+        }
+
+        .led-green {
+            background-color: #00ff00;
+            box-shadow: 0 0 6px #00ff00;
+        }
+
+        .led-red {
+            background-color: #ff0000;
+            box-shadow: 0 0 6px #ff0000;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+
+        .status-label {
+            min-width: 180px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -62,10 +94,22 @@
             </div>
         </form>
 
-        <!-- Display Hestia Information -->
+        <!-- NTN Status Components -->
+        <div class="info-container">
+            <h2>NTN Status Details</h2>
+            <div id="ntn-status-indicators" data-srv-mode="{{ hestia_info.srv_mode }}">
+                <!-- Hidden raw status for JavaScript processing -->
+                <span id="raw-status" style="display: none;">{{ hestia_info['ntn-status'] }}</span>
+
+                <div id="dynamic-indicators">
+                    <!-- LED indicators will be inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- NTN Network Details -->
         <div class="info-container">
             <h2>NTN Network Details</h2>
-            <p><strong>NTN Status:</strong> {{ hestia_info['ntn-status'] }}</p>
             <p><strong>IMSI:</strong> {{ hestia_info.imsi }}</p>
             <p><strong>RSRP:</strong> {{ hestia_info.rsrp }}</p>
             <p><strong>SINR:</strong> {{ hestia_info.sinr }}</p>
@@ -88,34 +132,136 @@
         </form>
     </div>
 
-    <!-- JavaScript for Auto-Reload -->
+    <!-- LED Indicators JavaScript -->
     <script>
-        let lastHash = null;
+        // Function to create LED indicator HTML with inline styles
+        function createLEDIndicator(label, value) {
+            var ledColor = value ? '#00ff00' : '#ff0000';
+            var shadowColor = value ? '#00ff00' : '#ff0000';
+            return '<div style="display: flex; align-items: center; margin: 5px 0;">' +
+                '<span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: ' + ledColor + '; border: 1px solid #333; box-shadow: 0 0 6px ' + shadowColor + '; margin-right: 8px;"></span>' +
+                '<span style="min-width: 180px; font-weight: bold;">' + label + ':</span>' +
+                '<span>' + value + '</span>' +
+                '</div>';
+        }
 
-        // Function to fetch NTN info data and check for changes
+        // Function to parse and display NTN status with LED indicators
+        function updateNTNStatusIndicators() {
+            var rawStatusElement = document.getElementById('raw-status');
+            var dynamicContainer = document.getElementById('dynamic-indicators');
+
+            if (!rawStatusElement || !dynamicContainer) {
+                return;
+            }
+
+            var rawStatus = rawStatusElement.textContent.trim();
+
+            // Auto-detect srv_mode from status data if downlink_ready is present (NIDD mode)
+            var srvMode = rawStatus.includes('downlink_ready') ? 1 : 2;
+
+            try {
+                // More robust Python dict to JSON conversion
+                var jsFormat = rawStatus
+                    .replace(/'/g, '"')                    // Replace single quotes with double quotes
+                    .replace(/True/g, 'true')              // Replace Python True with JSON true
+                    .replace(/False/g, 'false')            // Replace Python False with JSON false
+                    .replace(/\(/g, '[')                   // Replace tuple opening ( with array [
+                    .replace(/\)/g, ']');                  // Replace tuple closing ) with array ]
+
+                var statusObj = JSON.parse(jsFormat);
+
+                // Create LED indicators based on srv_mode
+                var indicatorsHTML = '<div style="margin: 10px 0;">';
+                // indicatorsHTML += '<p><strong>Service Mode:</strong> ' + (srvMode === 1 ? 'NIDD' : 'UDP') + ' (' + srvMode + ')</p>';
+
+                // Common indicators for both modes
+                indicatorsHTML += createLEDIndicator('Module AT Ready', statusObj.module_at_ready || false);
+
+                if (srvMode === 1) {
+                    // NIDD mode indicators
+                    indicatorsHTML += createLEDIndicator('Downlink Ready', statusObj.downlink_ready || false);
+                    indicatorsHTML += createLEDIndicator('SIM Ready', statusObj.sim_ready || false);
+                    indicatorsHTML += createLEDIndicator('Network Registered', statusObj.network_registered || false);
+                } else {
+                    // UDP mode indicators
+                    indicatorsHTML += createLEDIndicator('IP Ready', statusObj.ip_ready || false);
+                    indicatorsHTML += createLEDIndicator('SIM Ready', statusObj.sim_ready || false);
+                    indicatorsHTML += createLEDIndicator('Network Registered', statusObj.network_registered || false);
+                    indicatorsHTML += createLEDIndicator('Socket Ready', statusObj.socket_ready || false);
+                }
+
+                // All Ready indicator (common for both modes)
+                indicatorsHTML += createLEDIndicator('All Ready', statusObj.all_ready || false);
+                indicatorsHTML += '</div>';
+
+                // Update the container
+                dynamicContainer.innerHTML = indicatorsHTML;
+
+            } catch (e) {
+                // If parsing fails, show raw data and create manual indicators
+                var indicatorsHTML = '<div style="margin: 10px 0;">';
+                indicatorsHTML += '<p><strong>Service Mode:</strong> ' + (srvMode === 1 ? 'NIDD' : 'UDP') + ' (' + srvMode + ')</p>';
+                indicatorsHTML += '<p style="color: orange;">Raw status: ' + rawStatus + '</p>';
+
+                // Manual parsing as fallback
+                var isModuleReady = rawStatus.indexOf("'module_at_ready': True") > -1;
+                var isDownlinkReady = rawStatus.indexOf("'downlink_ready': True") > -1;
+                var isIpReady = rawStatus.indexOf("'ip_ready': True") > -1;
+                var isSimReady = rawStatus.indexOf("'sim_ready': True") > -1;
+                var isNetworkReady = rawStatus.indexOf("'network_registered': True") > -1;
+                var isSocketReady = rawStatus.indexOf("'socket_ready': True") > -1;
+                var isAllReady = rawStatus.indexOf("'all_ready': True") > -1;
+
+                indicatorsHTML += createLEDIndicator('Module AT Ready', isModuleReady);
+
+                if (srvMode === 1) {
+                    indicatorsHTML += createLEDIndicator('Downlink Ready', isDownlinkReady);
+                    indicatorsHTML += createLEDIndicator('SIM Ready', isSimReady);
+                    indicatorsHTML += createLEDIndicator('Network Registered', isNetworkReady);
+                } else {
+                    indicatorsHTML += createLEDIndicator('IP Ready', isIpReady);
+                    indicatorsHTML += createLEDIndicator('SIM Ready', isSimReady);
+                    indicatorsHTML += createLEDIndicator('Network Registered', isNetworkReady);
+                    indicatorsHTML += createLEDIndicator('Socket Ready', isSocketReady);
+                }
+
+                indicatorsHTML += createLEDIndicator('All Ready', isAllReady);
+                indicatorsHTML += '</div>';
+
+                dynamicContainer.innerHTML = indicatorsHTML;
+            }
+        }
+
+        // Function to fetch and update data without page reload
         function checkForUpdates() {
             fetch('/hestia_info_data')
                 .then(response => response.json())
                 .then(data => {
-                    const currentHash = data.hash;
-                    if (lastHash === null) {
-                        // First fetch, store the hash
-                        lastHash = currentHash;
-                    } else if (lastHash !== currentHash) {
-                        // Hash has changed, reload the page
-                        window.location.reload();
+                    // Update the hidden status element with new data
+                    const rawStatusElement = document.getElementById('raw-status');
+                    if (rawStatusElement && data.hestia_info && data.hestia_info['ntn-status']) {
+                        rawStatusElement.textContent = data.hestia_info['ntn-status'];
+                        // Update LED indicators with new data
+                        updateNTNStatusIndicators();
                     }
                 })
                 .catch(error => {
-                    console.error('Error checking for updates:', error);
+                    console.error('Error fetching updates:', error);
                 });
         }
 
-        // Poll every 10 seconds (10000 milliseconds)
-        setInterval(checkForUpdates, 10000);
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(updateNTNStatusIndicators, 100);
 
-        // Initial check on page load
-        checkForUpdates();
+            // Start auto-update every 5 seconds
+            setInterval(checkForUpdates, 5000);
+        });
+
+        // Also update when window loads
+        window.addEventListener('load', function() {
+            updateNTNStatusIndicators();
+        });
     </script>
         </div>
     </div>

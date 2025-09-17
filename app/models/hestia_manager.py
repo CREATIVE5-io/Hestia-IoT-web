@@ -64,6 +64,11 @@ class HestiaInfoManager(ConfigManager):
             }
             self._save_config(config)
 
+        # Ensure srv_mode section exists
+        if 'srv_mode' not in config['ntn-info']:
+            config['ntn-info']['srv_mode'] = '2'  # Default to UDP mode
+            self._save_config(config)
+
         return {
             'imsi': config['ntn-info'].get('imsi', ''),
             'rsrp': config['ntn-info'].get('rsrp', ''),
@@ -71,6 +76,7 @@ class HestiaInfoManager(ConfigManager):
             'longitude': config['ntn-info'].get('longitude', ''),
             'latitude': config['ntn-info'].get('latitude', ''),
             'ntn-status': config['ntn-info'].get('ntn-status', ''),
+            'srv_mode': config['ntn-info'].get('srv_mode', '2'),
             'last-update': config['ntn-info'].get('last-update', ''),
             'serial_interface': config['serial-config'].get('serial_interface', '/dev/ttyUSB0'),
             'lora-info': {
