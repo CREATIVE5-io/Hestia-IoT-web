@@ -33,14 +33,14 @@ def make_celery(app):
 
 
 # Celery tasks for LoRa setup
-def restart_lora_service():
-    """Restart LoRa service task"""
-    try:
-        # This would be customized based on your LoRa service setup
-        subprocess.run(['/usr/bin/sudo', '/usr/bin/systemctl', 'restart', 'lora-service'], 
-                      capture_output=True, text=True, check=True)
-        return {"status": "success", "message": "LoRa service restart initiated"}
-    except subprocess.CalledProcessError as e:
-        return {"status": "error", "message": f"Error restarting LoRa service: {e.stderr}"}
-    except Exception as e:
-        return {"status": "error", "message": f"Unexpected error restarting LoRa service: {str(e)}"}
+#def restart_lora_service():
+#    """Restart LoRa service task"""
+#    try:
+#        # This would be customized based on your LoRa service setup
+#        subprocess.run(['/usr/bin/sudo', '/usr/bin/systemctl', 'restart', 'lora-service'], 
+#                      capture_output=True, text=True, check=True)
+#        return {"status": "success", "message": "LoRa service restart initiated"}
+#    except subprocess.CalledProcessError as e:
+#        return {"status": "error", "message": f"Error restarting LoRa service: {e.stderr}"}
+#    except Exception as e:
+#        return {"status": "error", "message": f"Unexpected error restarting LoRa service: {str(e)}"}

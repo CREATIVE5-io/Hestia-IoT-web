@@ -5,30 +5,127 @@ body {
     margin: 0;
     padding: 0;
     color: #1D1D1F;
+    display: flex;
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
 
-/* Container for main content */
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
+/* Sidebar Styles */
+.sidebar {
+    width: 240px;
+    background-color: #FFFFFF;
+    border-right: 1px solid #E5E5E7;
+    padding: 24px 0;
+    position: fixed;
+    height: 100vh;
+    overflow-y: auto;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    transition: transform 0.3s ease;
+}
+
+.sidebar-header {
+    padding: 0 24px 24px 24px;
+    border-bottom: 1px solid #E5E5E7;
+    margin-bottom: 24px;
+}
+
+.sidebar-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1D1D1F;
+    margin: 0;
+}
+
+.sidebar-nav {
+    padding: 0;
+}
+
+.sidebar-nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar-nav li {
+    margin: 0;
+}
+
+.sidebar-nav a {
+    display: block;
+    padding: 12px 24px;
+    color: #424245;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 400;
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+.sidebar-nav a:hover {
+    background-color: #F5F5F7;
+    color: #007AFF;
+    border-left-color: #007AFF;
+}
+
+.sidebar-nav a.active {
+    background-color: #E3F2FD;
+    color: #007AFF;
+    border-left-color: #007AFF;
+    font-weight: 500;
+}
+
+.sidebar-nav .logout {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid #E5E5E7;
+}
+
+.sidebar-nav .logout a {
+    color: #FF3B30;
+}
+
+.sidebar-nav .logout a:hover {
+    background-color: #FFEBEE;
+    border-left-color: #FF3B30;
+}
+
+/* Main Content Area */
+.main-content {
+    flex: 1;
+    margin-left: 240px;
     padding: 24px;
     min-height: 100vh;
 }
 
-/* Login page styles */
+/* Login page exception - no sidebar */
 .login-page {
     display: block;
     min-height: 100vh;
     padding: 24px;
 }
 
+.login-page .main-content {
+    margin-left: 0;
+}
+
 /* Mobile Responsive Styles */
 @media (max-width: 768px) {
-    /* Adjust container for mobile */
-    .container {
+    /* Hide sidebar by default on mobile */
+    .sidebar {
+        transform: translateX(-100%);
+        width: 280px;
+    }
+
+    /* Show sidebar when active */
+    .sidebar.active {
+        transform: translateX(0);
+    }
+
+    /* Adjust main content for mobile */
+    .main-content {
+        margin-left: 0;
         padding: 16px;
     }
 
@@ -170,6 +267,19 @@ body {
         opacity: 1;
     }
 
+    /* Adjust sidebar for mobile */
+    .sidebar-header {
+        padding: 16px 24px 24px 24px;
+    }
+
+    .sidebar-header h2 {
+        font-size: 16px;
+    }
+
+    .sidebar-nav a {
+        padding: 16px 24px;
+        font-size: 16px;
+    }
 
     /* Hide desktop-only elements */
     .desktop-only {
@@ -192,12 +302,26 @@ body {
         display: none;
     }
 
+    /* Ensure sidebar is always visible on desktop */
+    .sidebar {
+        transform: translateX(0);
+    }
 }
 
 /* Tablet styles */
 @media (max-width: 1024px) and (min-width: 769px) {
-    .container {
+    .sidebar {
+        width: 220px;
+    }
+
+    .main-content {
+        margin-left: 220px;
         padding: 20px;
+    }
+
+    .sidebar-nav a {
+        padding: 10px 20px;
+        font-size: 13px;
     }
 
     /* Tablet-friendly forms */
@@ -224,8 +348,12 @@ body {
         font-size: 18px;
     }
 
-    .container {
+    .main-content {
         padding: 12px;
+    }
+
+    .sidebar {
+        width: 100%;
     }
 
     .form-group {

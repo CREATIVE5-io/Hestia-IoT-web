@@ -37,11 +37,11 @@ def create_app(config_class=Config):
     #from app.routes.auth import auth_bp
     from app.routes.lora import lora_bp
     from app.routes.lora_progress import lora_progress_bp
-    from app.routes.ntn import ntn
+    from app.routes.hestia import hestia
     
     #app.register_blueprint(auth_bp)
     app.register_blueprint(lora_bp)
     app.register_blueprint(lora_progress_bp)
-    app.register_blueprint(ntn)
+    app.register_blueprint(hestia)
     
     return app

@@ -10,7 +10,10 @@
     <link rel="stylesheet" href="/static/apple_style.css?v=1754543089">
 </head>
 <body>
-    <div class="container">
+    {% include 'sidebar.html' %}
+
+    <div class="main-content">
+        <div class="container">
         <h1>Hestia A2 - LoRa Module Configuration</h1>
 
     <!-- Flash Messages -->
@@ -311,6 +314,7 @@
           window.location.reload();
         }
     </script>
+        </div>
     </div>
 </body>
 </html>

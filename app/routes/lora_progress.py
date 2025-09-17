@@ -10,7 +10,6 @@ from app.models.lora_manager import LoRaConfigManager
 
 lora_progress_bp = Blueprint('lora_progress', __name__)
 
-
 @lora_progress_bp.route('/lora/progress')
 def get_lora_progress():
     """Get current LoRa setup progress"""

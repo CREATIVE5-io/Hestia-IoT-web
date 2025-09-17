@@ -7,7 +7,7 @@ import os
 from time import sleep
 
 from app.models.lora_manager import LoRaConfigManager
-from app.models.ntn_manager import NTNDongleManager
+from app.models.hestia_operations import hestia
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ def setup_lora_devices(config_manager, progress_callback=None):
             update_progress(15, "Connecting to dongle...")
             ser_interface = config['NTN-DONGLE'].get('serial_interface', '/dev/ttyUSB0')
             logger.debug(f"Using serial interface: {ser_interface}")
-            ntn_dongle = NTNDongleManager(port=ser_interface)
+            ntn_dongle = hestia(port=ser_interface, dl_callback=None, lock=None)
            
             validpasswd = ntn_dongle.set_password((0,0,0,0)) 
             # Initialize the dongle
@@ -160,7 +160,7 @@ def setup_lora(config_manager, progress_callback=None):
             update_progress(15, "Connecting to dongle...")
             ser_interface = config['NTN-DONGLE'].get('serial_interface', '/dev/ttyUSB0')
             logger.debug(f"Using serial interface: {ser_interface}")
-            ntn_dongle = NTNDongleManager(port=ser_interface)
+            ntn_dongle = hestia(port=ser_interface, dl_callback=None)
            
             validpasswd = ntn_dongle.set_password((0,0,0,0)) 
             # Initialize the dongle

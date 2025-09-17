@@ -1,0 +1,112 @@
+<!-- Mobile Header -->
+<div class="mobile-header">
+    <h1 id="mobile-page-title">Hestia IoT Control</h1>
+    <button class="hamburger" id="mobile-menu-toggle" aria-label="Toggle navigation menu">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+</div>
+
+<!-- Mobile Overlay -->
+<div class="mobile-overlay" id="mobile-overlay"></div>
+
+<!-- Sidebar Navigation -->
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <h2>Hestia IoT Control</h2>
+    </div>
+    <nav class="sidebar-nav">
+        <ul>
+            <li>
+                <a href="{{ url_for('lora.lora_page') }}"
+                   class="{% if request.endpoint == 'lora.lora_page' %}active{% endif %}"
+                   data-title="LoRa Setup">
+                    📡 LoRa Setup
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('hestia.hestia_info_page') }}" 
+                   class="{% if request.endpoint == 'hestia.hestia_info_page' %}active{% endif %}"
+                   data-title="Hestia Information">
+                    🛰️ Hestia Information
+                </a>
+            </li>
+        </ul>
+    </nav>
+</div>
+
+<!-- Mobile Navigation JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const hamburger = document.getElementById('mobile-menu-toggle');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('mobile-overlay');
+    const mobileTitle = document.getElementById('mobile-page-title');
+    
+    // Set mobile page title based on active page
+    const activeLink = document.querySelector('.sidebar-nav a.active');
+    if (activeLink && mobileTitle) {
+        const title = activeLink.getAttribute('data-title') || activeLink.textContent.trim();
+        mobileTitle.textContent = title.replace(/^[📊🔧📡🛰️🌐🚪]\s*/, '');
+    }
+    
+    // Toggle mobile menu
+    function toggleMobileMenu() {
+        const isActive = sidebar.classList.contains('active');
+        
+        if (isActive) {
+            closeMobileMenu();
+        } else {
+            openMobileMenu();
+        }
+    }
+    
+    function openMobileMenu() {
+        sidebar.classList.add('active');
+        overlay.classList.add('active');
+        hamburger.classList.add('active');
+        document.body.style.overflow = 'hidden'; // Prevent scrolling
+    }
+    
+    function closeMobileMenu() {
+        sidebar.classList.remove('active');
+        overlay.classList.remove('active');
+        hamburger.classList.remove('active');
+        document.body.style.overflow = ''; // Restore scrolling
+    }
+    
+    // Event listeners
+    if (hamburger) {
+        hamburger.addEventListener('click', toggleMobileMenu);
+    }
+    
+    if (overlay) {
+        overlay.addEventListener('click', closeMobileMenu);
+    }
+    
+    // Close menu when clicking on navigation links (mobile)
+    const navLinks = document.querySelectorAll('.sidebar-nav a');
+    navLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                closeMobileMenu();
+            }
+        });
+    });
+    
+    // Handle window resize
+    window.addEventListener('resize', function() {
+        if (window.innerWidth > 768) {
+            closeMobileMenu();
+        }
+    });
+    
+    // Handle escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && sidebar.classList.contains('active')) {
+            closeMobileMenu();
+        }
+    });
+});
+</script>

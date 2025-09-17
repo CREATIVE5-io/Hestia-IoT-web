@@ -14,8 +14,8 @@ class Config:
     CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND') or 'redis://localhost:6379/0'
     
     # Authentication
-    VALID_USERNAME = os.environ.get('VALID_USERNAME') or 'admin'
-    VALID_PASSWORD = os.environ.get('VALID_PASSWORD') or 'C12345c'
+    VALID_USERNAME = os.environ.get('VALID_USERNAME') or 'demo'
+    VALID_PASSWORD = os.environ.get('VALID_PASSWORD') or 'demo'
 
 
 class DevelopmentConfig(Config):
