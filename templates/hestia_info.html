@@ -139,9 +139,8 @@
             var ledColor = value ? '#00ff00' : '#ff0000';
             var shadowColor = value ? '#00ff00' : '#ff0000';
             return '<div style="display: flex; align-items: center; margin: 5px 0;">' +
-                '<span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: ' + ledColor + '; border: 1px solid #333; box-shadow: 0 0 6px ' + shadowColor + '; margin-right: 8px;"></span>' +
                 '<span style="min-width: 180px; font-weight: bold;">' + label + ':</span>' +
-                '<span>' + value + '</span>' +
+                '<span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: ' + ledColor + '; border: 1px solid #333; box-shadow: 0 0 6px ' + shadowColor + '; margin-left: 8px;"></span>' +
                 '</div>';
         }
 
