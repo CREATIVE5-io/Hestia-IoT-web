@@ -117,6 +117,16 @@
             <p><strong>Latitude:</strong> {{ hestia_info.latitude }}</p>
             <p><strong>Last Update:</strong> {{ hestia_info['last-update'] }}</p>
         </div>
+
+        <!-- Downlink Messages -->
+        <div class="info-container">
+            <h2>Downlink Messages</h2>
+            <div id="downlink-messages">
+                <p><em>No messages received yet...</em></p>
+            </div>
+            <button onclick="clearMessages()" style="margin: 10px 0; padding: 5px 10px; background: #ff6b6b; color: white; border: none; border-radius: 4px;">Clear Messages</button>
+        </div>
+
         <div class='info-container'>
             <h2>Lora Device Information</h2>
             <p><strong>Device Address:</strong> {{ hestia_info['lora-info'].devAddr }}</p>
@@ -299,6 +309,11 @@
 
                         // Update all info fields
                         updateInfoFields(info);
+
+                        // Update downlink messages if available
+                        if (info.downlink_messages) {
+                            updateDownlinkMessages(info.downlink_messages);
+                        }
                     }
                 })
                 .catch(error => {
@@ -309,10 +324,86 @@
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(updateNTNStatusIndicators, 100);
+            setTimeout(initializeDownlinkMessages, 200);
 
             // Start auto-update every 5 seconds
             setInterval(checkForUpdates, 5000);
         });
+
+        // Function to update downlink messages
+        function updateDownlinkMessages(messages) {
+            const container = document.getElementById('downlink-messages');
+            if (!container) {
+                return;
+            }
+
+            if (!messages || messages.length === 0) {
+                container.innerHTML = '<p><em>No messages received yet...</em></p>';
+                return;
+            }
+
+            let messagesHTML = '';
+            messages.forEach(function(message, index) {
+                messagesHTML += '<div style="margin: 5px 0; padding: 8px; background: #f0f0f0; border-left: 3px solid #007AFF; border-radius: 3px;">';
+                messagesHTML += '<div style="font-size: 12px; color: #666; margin-bottom: 3px;">' + (message.timestamp || 'Unknown time') + '</div>';
+
+                // Show raw hex data
+                messagesHTML += '<div style="font-family: monospace; font-size: 13px; color: #333; margin-bottom: 5px; word-break: break-all;">' + (message.data || 'No data') + '</div>';
+
+                // Try to decode hex data to readable JSON
+                try {
+                    var hexData = message.data || '';
+                    if (hexData.length > 0) {
+                        // Convert hex string to bytes, then to string, then parse as JSON
+                        var decodedString = '';
+                        for (var i = 0; i < hexData.length; i += 2) {
+                            decodedString += String.fromCharCode(parseInt(hexData.substr(i, 2), 16));
+                        }
+                        var parsedData = JSON.parse(decodedString);
+                        messagesHTML += '<div style="font-family: monospace; font-size: 13px; color: #007AFF; background: #f8f8f8; padding: 4px; border-radius: 2px; margin-bottom: 3px;">';
+                        //messagesHTML += JSON.stringify(parsedData, null, 2).replace(/\n/g, '<br>').replace(/ /g, '&nbsp;');
+                        messagesHTML += JSON.stringify(parsedData);
+                        messagesHTML += '</div>';
+                    }
+                } catch (e) {
+                    // If decoding fails, just show the raw data (already shown above)
+                }
+
+                messagesHTML += '<div style="font-size: 11px; color: #888; margin-top: 3px;">Length: ' + (message.length || 0) + ' bytes</div>';
+                messagesHTML += '</div>';
+            });
+
+            container.innerHTML = messagesHTML;
+        }
+
+        // Initialize downlink messages on page load
+        function initializeDownlinkMessages() {
+            // Check if we have initial data
+            const initialData = {{ hestia_info | tojson }};
+            if (initialData && initialData.downlink_messages) {
+                updateDownlinkMessages(initialData.downlink_messages);
+            }
+        }
+
+        // Function to clear messages
+        function clearMessages() {
+            fetch('/hestia_info', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'action=clear_messages'
+            })
+            .then(function() {
+                const container = document.getElementById('downlink-messages');
+                if (container) {
+                    container.innerHTML = '<p><em>Messages cleared...</em></p>';
+                }
+            })
+            .catch(function(error) {
+                console.error('Error clearing messages:', error);
+            });
+        }
 
         // Also update when window loads
         window.addEventListener('load', function() {

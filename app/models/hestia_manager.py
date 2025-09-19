@@ -69,6 +69,33 @@ class HestiaInfoManager(ConfigManager):
             config['ntn-info']['srv_mode'] = '2'  # Default to UDP mode
             self._save_config(config)
 
+        # Ensure downlink-messages section exists
+        if 'downlink-messages' not in config:
+            config['downlink-messages'] = {}
+            self._save_config(config)
+
+        # Get downlink messages
+        downlink_messages = []
+        if 'downlink-messages' in config:
+            # Sort keys in reverse order to get newest messages first
+            for key in sorted(config['downlink-messages'].keys(), reverse=True):
+                message_data = config['downlink-messages'][key]
+                if '|' in message_data:  # timestamp|data|length format
+                    parts = message_data.split('|', 2)
+                    if len(parts) >= 3:
+                        downlink_messages.append({
+                            'timestamp': parts[0],
+                            'data': parts[1],
+                            'length': parts[2]
+                        })
+                else:
+                    # Fallback for other formats
+                    downlink_messages.append({
+                        'timestamp': 'Unknown',
+                        'data': message_data,
+                        'length': len(str(message_data))
+                    })
+
         return {
             'imsi': config['ntn-info'].get('imsi', ''),
             'rsrp': config['ntn-info'].get('rsrp', ''),
@@ -79,6 +106,7 @@ class HestiaInfoManager(ConfigManager):
             'srv_mode': config['ntn-info'].get('srv_mode', '2'),
             'last-update': config['ntn-info'].get('last-update', ''),
             'serial_interface': config['serial-config'].get('serial_interface', '/dev/ttyUSB0'),
+            'downlink_messages': downlink_messages[:3],  # Keep only first 3 messages (newest)
             'lora-info': {
                 'devAddr': config['lora-info'].get('devAddr', ''),
                 'data': config['lora-info'].get('data', ''),
@@ -120,3 +148,59 @@ class HestiaInfoManager(ConfigManager):
         # Save the updated configuration
         self._save_config(config)
         logger.info(f"Serial interface updated to: {serial_interface}")
+
+    def add_downlink_message(self, data, length):
+        """Add a downlink message from dl_callback"""
+        import datetime
+        config = configparser.ConfigParser()
+        if os.path.exists(self.hestia_info_file):
+            config.read(self.hestia_info_file)
+
+        # Ensure downlink-messages section exists
+        if 'downlink-messages' not in config:
+            config['downlink-messages'] = {}
+
+        # Create timestamp
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # Convert data to string if it's bytes
+        if isinstance(data, bytes):
+            try:
+                data_str = data.decode('utf-8')
+            except:
+                data_str = str(data)
+        else:
+            data_str = str(data)
+
+        # Generate unique key
+        key = f"msg_{int(datetime.datetime.now().timestamp())}"
+
+        # Store message in format: timestamp|data|length
+        config['downlink-messages'][key] = f"{timestamp}|{data_str}|{length}"
+
+        # Keep only last 3 messages to prevent file from growing too large
+        messages = dict(config['downlink-messages'])
+        if len(messages) > 3:
+            # Remove oldest messages, keep only latest 3
+            oldest_keys = sorted(messages.keys())[:len(messages)-3]
+            for old_key in oldest_keys:
+                del config['downlink-messages'][old_key]
+
+        # Save the updated configuration
+        self._save_config(config)
+        logger.info(f"Added downlink message: {data_str[:50]}... ({length} bytes)")
+
+    def clear_downlink_messages(self):
+        """Clear all downlink messages"""
+        config = configparser.ConfigParser()
+        if os.path.exists(self.hestia_info_file):
+            config.read(self.hestia_info_file)
+
+        # Clear all messages
+        if 'downlink-messages' in config:
+            config.remove_section('downlink-messages')
+            config['downlink-messages'] = {}
+
+        # Save the updated configuration
+        self._save_config(config)
+        logger.info("Cleared all downlink messages")

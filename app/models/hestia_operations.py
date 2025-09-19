@@ -553,6 +553,8 @@ class hestia(threading.Thread):
                     if data_len:
                         dl_resp = self.ntn.read_registers(NTN_DL_DATA_START, data_len)
                         logger.debug(f'Downlink data response: {dl_resp}')
+                        #sample of dl_resp for testing
+                        #dl_resp = (14178, 12850, 13876, 13873, 14132, 13873, 12850, 13153, 12848, 14178, 12850, 14132, 13881, 13924, 13877, 14128, 13877, 14130, 13881, 13926, 13876, 14131, 12850, 13153, 12848, 13107, 13104, 13104, 14180, 14180)
                         if dl_resp:
                             dl_data = b''.join(struct.pack('>H', v) for v in dl_resp)
                             if self.dl_callback:
@@ -566,7 +568,7 @@ class hestia(threading.Thread):
                             valid_passwd = self.set_password((0, 0, 0, 0))
                         sleep(1)
                     else:
-                        #logger.debug(f'Downlink data length: {data_len}')
+                        logger.debug(f'Downlink data length: {data_len}')
                         sleep(1)
                         pass
                 except Exception as e:

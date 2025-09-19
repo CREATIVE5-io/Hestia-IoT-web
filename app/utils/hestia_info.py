@@ -19,6 +19,8 @@ logger = logging.getLogger(__name__)
 def dl_callback(data, d_len):
     try:
         logger.debug(f'dl_callback: {d_len}, {data}')
+        hestia_manager = HestiaInfoManager()
+        hestia_manager.add_downlink_message(data.decode('utf-8') if isinstance(data, bytes) else str(data), d_len)
     except Exception as e:
         logger.error(e)
 
@@ -108,6 +110,8 @@ class hestiaInfo(ConfigManager):
                             self.hestia_info['imsi'] = imsi
                         logger.info(f'IMSI: {imsi}')
                     
+                    active_mode = self.ntn_dongle.get_active_mode()
+                    logger.info(f'Active Mode: {active_mode}')
                     module_status = self.ntn_dongle.module_status()
                     logger.info(f'Module Status: {module_status}')
                     network_info = self.ntn_dongle.get_network_info()

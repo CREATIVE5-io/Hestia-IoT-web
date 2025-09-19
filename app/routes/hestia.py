@@ -42,6 +42,14 @@ def hestia_info_page():
             except Exception as e:
                 flash(f'Service stop failed: {str(e)}')
             return redirect(url_for('hestia.hestia_info_page'))
+        elif request.form.get('action') == 'clear_messages':
+            try:
+                hestia_manager = HestiaInfoManager()
+                hestia_manager.clear_downlink_messages()
+                flash('Downlink messages cleared.')
+            except Exception as e:
+                flash(f'Clear messages failed: {str(e)}')
+            return redirect(url_for('hestia.hestia_info_page'))
     hestia_manager = HestiaInfoManager()
     hestia_info = hestia_manager.read_hestia_info()
     return render_template('hestia_info.html', hestia_info=hestia_info)
