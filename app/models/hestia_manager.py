@@ -253,7 +253,7 @@ class HestiaInfoManager(ConfigManager):
             }
 
             # Use fixed filename for all captures
-            filename = "location_captures.json"
+            filename = "temp_data_queue.json"
             filepath = os.path.join(self.run_dir, filename)
 
             # Append to file (each capture on a new line)
@@ -286,3 +286,29 @@ class HestiaInfoManager(ConfigManager):
                 'success': False,
                 'error': str(e)
             }
+
+    def auto_capture_from_downlink(self, dl_data):
+        """Auto-capture location data triggered by downlink message with specific keys"""
+        import datetime
+        import json
+
+        try:
+            # Create the data structure for downlink trigger
+            capture_data = {
+                'D': [dl_data]
+            }
+
+            # Use same filename as manual captures
+            filename = "temp_data_queue.json"
+            filepath = os.path.join(self.run_dir, filename)
+
+            # Append to file (each capture on a new line)
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            with open(filepath, 'a') as f:
+                # Add timestamp comment and data
+                f.write(f"// Auto-captured from downlink at {timestamp}\n")
+                f.write(json.dumps(capture_data) + "\n")
+
+            logger.info(f"Auto-captured downlink data: {capture_data} -> {filename}")
+        except Exception as e:
+            logger.error(f"Error auto-capturing downlink data: {str(e)}")

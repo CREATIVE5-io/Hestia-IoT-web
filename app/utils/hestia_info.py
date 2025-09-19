@@ -1,6 +1,7 @@
 """
 LoRa device setup utility functions
 """
+import binascii
 import configparser
 import json
 import logging
@@ -18,9 +19,24 @@ logger = logging.getLogger(__name__)
 
 def dl_callback(data, d_len):
     try:
-        logger.debug(f'dl_callback: {d_len}, {data}')
+        logger.info(f'dl_callback: {d_len}, {data}')
         hestia_manager = HestiaInfoManager()
+        # Store the downlink message
         hestia_manager.add_downlink_message(data.decode('utf-8') if isinstance(data, bytes) else str(data), d_len)
+        # Try to parse the hex data and check for trigger keys
+        try:
+            dl_data = json.loads(binascii.unhexlify(data).decode('utf-8'))
+            logger.info(f'dl_callback data: {dl_data}')
+
+            # Check if message contains 'timeperiods' or 'gpstype' and auto-capture location data
+            if isinstance(dl_data, dict) and 'data' in dl_data:
+                message_data = dl_data['data']
+                if isinstance(message_data, dict):
+                    if 'timeperiods' in message_data or 'gpstype' in message_data:
+                        logger.info(f"Detected trigger key in message, auto-capturing location data")
+                        hestia_manager.auto_capture_from_downlink(dl_data)
+        except Exception as parse_error:
+            logger.debug(f"Could not parse downlink data as JSON: {parse_error}")
     except Exception as e:
         logger.error(e)
 
