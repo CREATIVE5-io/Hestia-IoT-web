@@ -65,7 +65,14 @@ class hestiaInfo(ConfigManager):
         if self.thread and self.thread.is_alive():
             self.thread.join(timeout=5)
         if self.ntn_dongle:
-            self.ntn_dongle = None
+            try:
+                # Properly stop the ntn_dongle's background threads
+                self.ntn_dongle.stop()
+                logger.info("NTN dongle stopped successfully")
+            except Exception as e:
+                logger.error(f"Error stopping NTN dongle: {e}")
+            finally:
+                self.ntn_dongle = None
 
     def write_to_ini(self):
         # Read existing config or create new one
