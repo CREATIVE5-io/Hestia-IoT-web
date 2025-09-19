@@ -204,3 +204,85 @@ class HestiaInfoManager(ConfigManager):
         # Save the updated configuration
         self._save_config(config)
         logger.info("Cleared all downlink messages")
+
+    def capture_location_data(self):
+        """Capture current RSRP, SINR, Longitude, Latitude and append to file"""
+        import datetime
+        import json
+
+        try:
+            # Read current hestia info
+            hestia_info = self.read_hestia_info()
+
+            # Extract the required data
+            latitude = hestia_info.get('latitude', '')
+            longitude = hestia_info.get('longitude', '')
+            rsrp = hestia_info.get('rsrp', '')
+            sinr = hestia_info.get('sinr', '')
+            rsrp = '-126'
+            sinr = '-1'
+
+            # Check if all required data is available
+            if not all([latitude, longitude, rsrp, sinr]):
+                missing_fields = []
+                if not latitude: missing_fields.append('Latitude')
+                if not longitude: missing_fields.append('Longitude')
+                if not rsrp: missing_fields.append('RSRP')
+                if not sinr: missing_fields.append('SINR')
+
+                return {
+                    'success': False,
+                    'error': f'Missing required data: {", ".join(missing_fields)}'
+                }
+
+            # Convert to appropriate data types
+            try:
+                lat_float = float(latitude)
+                lon_float = float(longitude)
+                rsrp_float = float(rsrp)
+                sinr_float = float(sinr)
+            except ValueError as e:
+                return {
+                    'success': False,
+                    'error': f'Invalid data format: {str(e)}'
+                }
+
+            # Create the data structure
+            capture_data = {
+                'm': [lat_float, lon_float, rsrp_float, sinr_float]
+            }
+
+            # Use fixed filename for all captures
+            filename = "location_captures.json"
+            filepath = os.path.join(self.run_dir, filename)
+
+            # Append to file (each capture on a new line)
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            with open(filepath, 'a') as f:
+                # Add timestamp comment and data
+                f.write(f"// Captured at {timestamp}\n")
+                f.write(json.dumps(capture_data) + "\n")
+
+            logger.info(f"Location data captured: {capture_data} -> {filename}")
+
+            # Count total captures in file
+            try:
+                with open(filepath, 'r') as f:
+                    lines = f.readlines()
+                capture_count = sum(1 for line in lines if line.strip().startswith('{"m":'))
+            except:
+                capture_count = 1
+
+            return {
+                'success': True,
+                'filename': filename,
+                'data': capture_data,
+                'total_captures': capture_count
+            }
+
+        except Exception as e:
+            logger.error(f"Error capturing location data: {str(e)}")
+            return {
+                'success': False,
+                'error': str(e)
+            }

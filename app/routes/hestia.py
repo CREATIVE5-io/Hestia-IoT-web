@@ -50,6 +50,17 @@ def hestia_info_page():
             except Exception as e:
                 flash(f'Clear messages failed: {str(e)}')
             return redirect(url_for('hestia.hestia_info_page'))
+        elif request.form.get('action') == 'capture_data':
+            try:
+                hestia_manager = HestiaInfoManager()
+                result = hestia_manager.capture_location_data()
+                if result['success']:
+                    flash(f'Location data captured successfully! Total captures: {result["total_captures"]} (saved to {result["filename"]})')
+                else:
+                    flash(f'Capture failed: {result["error"]}')
+            except Exception as e:
+                flash(f'Capture data failed: {str(e)}')
+            return redirect(url_for('hestia.hestia_info_page'))
     hestia_manager = HestiaInfoManager()
     hestia_info = hestia_manager.read_hestia_info()
     return render_template('hestia_info.html', hestia_info=hestia_info)
