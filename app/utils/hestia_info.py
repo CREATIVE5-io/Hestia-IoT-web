@@ -51,9 +51,10 @@ class hestiaInfo(ConfigManager):
         self.running = False
         self.thread = None
         self.hestia_info_file = os.path.join(self.run_dir, 'hestia_info.ini')
+        self.hestia_manager = HestiaInfoManager()
         print(f"Hestia info file path: {self.hestia_info_file}")
         try:
-            config = HestiaInfoManager().read_hestia_info()
+            config = self.hestia_manager.read_hestia_info()
             logger.info(f"Hestia Config: {config}")
             ser_interface = config.get('serial_interface', '/dev/ttyUSB0')
             logger.info(f"Using serial interface: {ser_interface}")
@@ -75,9 +76,19 @@ class hestiaInfo(ConfigManager):
             self.thread = threading.Thread(target=self.update_info)
             self.thread.daemon = True
             self.thread.start()
+
+            # Start upload thread if dongle is available
+            if self.ntn_dongle:
+                self.hestia_manager.start_upload_thread(self.ntn_dongle)
+                logger.info("Started upload thread for data transmission")
     
     def stop(self):
         self.running = False
+        # Stop upload thread first
+        if hasattr(self, 'hestia_manager'):
+            self.hestia_manager.stop_upload_thread()
+            logger.info("Stopped upload thread")
+
         if self.thread and self.thread.is_alive():
             self.thread.join(timeout=5)
         if self.ntn_dongle:

@@ -5,6 +5,10 @@ import configparser
 import hashlib
 import logging
 import os
+import threading
+import fcntl
+import json
+import time
 from app.models.config_manager import ConfigManager
 from time import sleep
 
@@ -19,6 +23,10 @@ class HestiaInfoManager(ConfigManager):
     def __init__(self):
         super().__init__()
         self.hestia_info_file = os.path.join(self.run_dir, 'hestia_info.ini')
+        self.temp_queue_file = os.path.join(self.run_dir, 'temp_data_queue.json')
+        self.file_lock = threading.Lock()
+        self.upload_thread = None
+        self.upload_running = False
 
     def read_hestia_info(self):
         """Read Hestia information"""
@@ -254,14 +262,13 @@ class HestiaInfoManager(ConfigManager):
 
             # Use fixed filename for all captures
             filename = "temp_data_queue.json"
-            filepath = os.path.join(self.run_dir, filename)
 
-            # Append to file (each capture on a new line)
+            # Thread-safe write to queue file
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            with open(filepath, 'a') as f:
-                # Add timestamp comment and data
-                f.write(f"// Captured at {timestamp}\n")
-                f.write(json.dumps(capture_data) + "\n")
+            success = self._write_to_queue_file(
+                json.dumps(capture_data),
+                f"Captured at {timestamp}"
+            )
 
             logger.info(f"Location data captured: {capture_data} -> {filename}")
 
@@ -300,15 +307,173 @@ class HestiaInfoManager(ConfigManager):
 
             # Use same filename as manual captures
             filename = "temp_data_queue.json"
-            filepath = os.path.join(self.run_dir, filename)
 
-            # Append to file (each capture on a new line)
+            # Thread-safe write to queue file
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            with open(filepath, 'a') as f:
-                # Add timestamp comment and data
-                f.write(f"// Auto-captured from downlink at {timestamp}\n")
-                f.write(json.dumps(capture_data) + "\n")
+            success = self._write_to_queue_file(
+                json.dumps(capture_data),
+                f"Auto-captured from downlink at {timestamp}"
+            )
 
             logger.info(f"Auto-captured downlink data: {capture_data} -> {filename}")
         except Exception as e:
             logger.error(f"Error auto-capturing downlink data: {str(e)}")
+
+    def _acquire_file_lock(self, file_handle):
+        """Acquire file lock for safe file operations"""
+        try:
+            fcntl.flock(file_handle.fileno(), fcntl.LOCK_EX)
+            return True
+        except Exception as e:
+            logger.error(f"Error acquiring file lock: {e}")
+            return False
+
+    def _release_file_lock(self, file_handle):
+        """Release file lock"""
+        try:
+            fcntl.flock(file_handle.fileno(), fcntl.LOCK_UN)
+        except Exception as e:
+            logger.error(f"Error releasing file lock: {e}")
+
+    def _write_to_queue_file(self, data_line, timestamp_comment):
+        """Thread-safe write to queue file"""
+        with self.file_lock:
+            try:
+                with open(self.temp_queue_file, 'a') as f:
+                    if self._acquire_file_lock(f):
+                        f.write(f"// {timestamp_comment}\n")
+                        f.write(data_line + "\n")
+                        self._release_file_lock(f)
+                        return True
+                    else:
+                        logger.error("Could not acquire file lock for writing")
+                        return False
+            except Exception as e:
+                logger.error(f"Error writing to queue file: {e}")
+                return False
+
+    def _read_and_process_queue(self):
+        """Read first data entry from queue and return it"""
+        with self.file_lock:
+            try:
+                if not os.path.exists(self.temp_queue_file):
+                    return None, []
+
+                with open(self.temp_queue_file, 'r') as f:
+                    if self._acquire_file_lock(f):
+                        lines = f.readlines()
+                        self._release_file_lock(f)
+                    else:
+                        logger.error("Could not acquire file lock for reading")
+                        return None, []
+
+                if not lines:
+                    return None, []
+
+                # Find first data line (not comment)
+                for i, line in enumerate(lines):
+                    line = line.strip()
+                    if line and not line.startswith('//'):
+                        try:
+                            data = json.loads(line)
+                            # Return data and remaining lines
+                            remaining_lines = lines[:i] + lines[i+1:]
+                            return data, remaining_lines
+                        except json.JSONDecodeError:
+                            logger.error(f"Invalid JSON in queue file: {line}")
+                            continue
+
+                return None, lines
+
+            except Exception as e:
+                logger.error(f"Error reading queue file: {e}")
+                return None, []
+
+    def _update_queue_file(self, remaining_lines):
+        """Update queue file with remaining lines after successful send"""
+        with self.file_lock:
+            try:
+                with open(self.temp_queue_file, 'w') as f:
+                    if self._acquire_file_lock(f):
+                        f.writelines(remaining_lines)
+                        self._release_file_lock(f)
+                        return True
+                    else:
+                        logger.error("Could not acquire file lock for updating")
+                        return False
+            except Exception as e:
+                logger.error(f"Error updating queue file: {e}")
+                return False
+
+    def start_upload_thread(self, hestia_instance):
+        """Start background thread to process upload queue"""
+        if not self.upload_running:
+            self.upload_running = True
+            self.hestia_instance = hestia_instance
+            self.upload_thread = threading.Thread(target=self._upload_worker, daemon=True)
+            self.upload_thread.start()
+            logger.info("Upload thread started")
+
+    def stop_upload_thread(self):
+        """Stop background upload thread"""
+        self.upload_running = False
+        if self.upload_thread and self.upload_thread.is_alive():
+            self.upload_thread.join(timeout=5)
+        logger.info("Upload thread stopped")
+
+    def _upload_worker(self):
+        """Background worker thread to process upload queue"""
+        logger.info("Upload worker thread started")
+
+        while self.upload_running:
+            try:
+                # Check if queue file has data
+                data, remaining_lines = self._read_and_process_queue()
+
+                if data is None:
+                    # No data to process, wait before checking again
+                    time.sleep(5)
+                    continue
+
+                logger.info(f"Processing queue data: {data}")
+
+                # Check module status and upload availability before sending
+                if hasattr(self.hestia_instance, 'send_data'):
+                    try:
+                        # Check if module is ready
+                        module_status = self.hestia_instance.module_status()
+                        if not module_status or not module_status.get('all_ready', False):
+                            logger.warning(f"Module not ready for transmission: {module_status}")
+                            time.sleep(10)
+                            continue
+
+                        # Check if upload is available
+                        if not self.hestia_instance.is_upload_available():
+                            logger.warning(f"Upload not available, waiting...")
+                            time.sleep(10)
+                            continue
+
+                        # All checks passed, attempt to send data
+                        logger.info(f"Module ready and upload available, sending data: {data}")
+                        success = self.hestia_instance.send_data(data)
+
+                        if success:
+                            logger.info(f"Successfully sent data: {data}")
+                            # Remove the sent data from queue file
+                            self._update_queue_file(remaining_lines)
+                        else:
+                            logger.warning(f"Failed to send data: {data}, will retry later")
+                            # Wait before retrying
+                            time.sleep(10)
+                    except Exception as e:
+                        logger.error(f"Error sending data: {e}")
+                        time.sleep(10)
+                else:
+                    logger.error("Hestia instance does not have send_data method")
+                    time.sleep(10)
+
+            except Exception as e:
+                logger.error(f"Error in upload worker: {e}")
+                time.sleep(10)
+
+        logger.info("Upload worker thread stopped")
