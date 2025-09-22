@@ -118,16 +118,32 @@
                 <p><strong>Longitude:</strong> {{ hestia_info.longitude }}</p>
                 <p><strong>Latitude:</strong> {{ hestia_info.latitude }}</p>
                 <p><strong>Last Update:</strong> {{ hestia_info['last-update'] }}</p>
+
+                <form method="POST" action="" style="margin-top: 15px;">
+                    <button type="submit" name="action" value="capture_data" class="btn btn-success" style="background-color: #28a745; padding: 5px 10px; border: none; border-radius: 4px; color: white;">Capture NetworkInfo Data</button>
+                </form>
             </div>
         </div>
 
-        <!-- Downlink Messages -->
-        <div class="info-container">
-            <h2>Downlink Messages</h2>
-            <div id="downlink-messages">
-                <p><em>No messages received yet...</em></p>
+        <!-- Messages Row -->
+        <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+            <!-- Uplink Messages (Pending Queue) -->
+            <div class="info-container" style="flex: 1;">
+                <h2>Uplink Messages (Pending)</h2>
+                <div id="uplink-messages">
+                    <p><em>No messages queued for transmission...</em></p>
+                </div>
+                <button onclick="clearUplinkMessages()" style="margin: 10px 0; padding: 5px 10px; background: #ffc107; color: #212529; border: none; border-radius: 4px;">Clear Queue</button>
             </div>
-            <button onclick="clearMessages()" style="margin: 10px 0; padding: 5px 10px; background: #ff6b6b; color: white; border: none; border-radius: 4px;">Clear Messages</button>
+
+            <!-- Downlink Messages -->
+            <div class="info-container" style="flex: 1;">
+                <h2>Downlink Messages</h2>
+                <div id="downlink-messages">
+                    <p><em>No messages received yet...</em></p>
+                </div>
+                <button onclick="clearMessages()" style="margin: 10px 0; padding: 5px 10px; background: #ff6b6b; color: white; border: none; border-radius: 4px;">Clear Downlink</button>
+            </div>
         </div>
 
         <div class='info-container'>
@@ -142,7 +158,6 @@
         <form method="POST" action="">
             <button type="submit" name="action" value="start_hestia_info" class="btn btn-primary">Start Hestia Info</button>
             <button type="submit" name="action" value="stop_hestia_info" class="btn btn-primary">Stop Hestia Info</button>
-            <button type="submit" name="action" value="capture_data" class="btn btn-success" style="background-color: #28a745; margin-left: 10px;">Capture Location Data</button>
         </form>
     </div>
 
@@ -318,6 +333,11 @@
                         if (info.downlink_messages) {
                             updateDownlinkMessages(info.downlink_messages);
                         }
+
+                        // Update uplink messages if available
+                        if (info.uplink_messages) {
+                            updateUplinkMessages(info.uplink_messages);
+                        }
                     }
                 })
                 .catch(error => {
@@ -387,6 +407,58 @@
             if (initialData && initialData.downlink_messages) {
                 updateDownlinkMessages(initialData.downlink_messages);
             }
+            if (initialData && initialData.uplink_messages) {
+                updateUplinkMessages(initialData.uplink_messages);
+            }
+        }
+
+        // Function to update uplink messages (pending queue)
+        function updateUplinkMessages(messages) {
+            const container = document.getElementById('uplink-messages');
+            if (!container) {
+                return;
+            }
+
+            if (!messages || messages.length === 0) {
+                container.innerHTML = '<p><em>No messages queued for transmission...</em></p>';
+                return;
+            }
+
+            let messagesHTML = '';
+            messages.forEach(function(message, index) {
+                messagesHTML += '<div style="margin: 5px 0; padding: 8px; background: #fff3cd; border-left: 3px solid #ffc107; border-radius: 3px;">';
+                messagesHTML += '<div style="font-size: 12px; color: #666; margin-bottom: 3px;">Queued: ' + (message.timestamp || 'Unknown time') + '</div>';
+
+                // Show pending data
+                messagesHTML += '<div style="font-family: monospace; font-size: 13px; color: #333; margin-bottom: 5px; word-break: break-all;">' + (message.data || 'No data') + '</div>';
+
+                // Show status
+                messagesHTML += '<div style="font-size: 11px; color: #856404; font-weight: bold; margin-bottom: 3px;">PENDING (#' + (message.position || index + 1) + ')</div>';
+
+                messagesHTML += '</div>';
+            });
+
+            container.innerHTML = messagesHTML;
+        }
+
+        // Function to clear uplink messages
+        function clearUplinkMessages() {
+            fetch('/hestia_info', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'action=clear_uplink_messages'
+            })
+            .then(function() {
+                const container = document.getElementById('uplink-messages');
+                if (container) {
+                    container.innerHTML = '<p><em>Uplink messages cleared...</em></p>';
+                }
+            })
+            .catch(function(error) {
+                console.error('Error clearing uplink messages:', error);
+            });
         }
 
         // Function to clear messages

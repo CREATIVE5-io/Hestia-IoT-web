@@ -82,6 +82,11 @@ class HestiaInfoManager(ConfigManager):
             config['downlink-messages'] = {}
             self._save_config(config)
 
+        # Ensure uplink-messages section exists
+        if 'uplink-messages' not in config:
+            config['uplink-messages'] = {}
+            self._save_config(config)
+
         # Get downlink messages
         downlink_messages = []
         if 'downlink-messages' in config:
@@ -104,6 +109,9 @@ class HestiaInfoManager(ConfigManager):
                         'length': len(str(message_data))
                     })
 
+        # Get uplink messages (pending queue items)
+        uplink_messages = self._get_pending_uplink_messages()
+
         return {
             'imsi': config['ntn-info'].get('imsi', ''),
             'rsrp': config['ntn-info'].get('rsrp', ''),
@@ -115,6 +123,7 @@ class HestiaInfoManager(ConfigManager):
             'last-update': config['ntn-info'].get('last-update', ''),
             'serial_interface': config['serial-config'].get('serial_interface', '/dev/ttyUSB0'),
             'downlink_messages': downlink_messages[:3],  # Keep only first 3 messages (newest)
+            'uplink_messages': uplink_messages[:3],  # Keep only first 3 messages (newest)
             'lora-info': {
                 'devAddr': config['lora-info'].get('devAddr', ''),
                 'data': config['lora-info'].get('data', ''),
@@ -212,6 +221,109 @@ class HestiaInfoManager(ConfigManager):
         # Save the updated configuration
         self._save_config(config)
         logger.info("Cleared all downlink messages")
+
+    def clear_uplink_messages(self):
+        """Clear all uplink messages"""
+        config = configparser.ConfigParser()
+        if os.path.exists(self.hestia_info_file):
+            config.read(self.hestia_info_file)
+
+        # Clear all messages
+        if 'uplink-messages' in config:
+            config.remove_section('uplink-messages')
+            config['uplink-messages'] = {}
+
+        # Save the updated configuration
+        self._save_config(config)
+        logger.info("Cleared all uplink messages")
+
+    def add_uplink_message(self, data, success, message_type='Auto'):
+        """Add an uplink message"""
+        import datetime
+        config = configparser.ConfigParser()
+        if os.path.exists(self.hestia_info_file):
+            config.read(self.hestia_info_file)
+
+        # Ensure uplink-messages section exists
+        if 'uplink-messages' not in config:
+            config['uplink-messages'] = {}
+
+        # Create timestamp
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # Convert data to string if needed
+        if isinstance(data, dict):
+            data_str = json.dumps(data)
+        else:
+            data_str = str(data)
+
+        # Generate unique key
+        key = f"msg_{int(datetime.datetime.now().timestamp())}"
+
+        # Store message in format: timestamp|data|success|type
+        config['uplink-messages'][key] = f"{timestamp}|{data_str}|{success}|{message_type}"
+
+        # Keep only last 3 messages to prevent file from growing too large
+        messages = dict(config['uplink-messages'])
+        if len(messages) > 3:
+            # Remove oldest messages, keep only latest 3
+            oldest_keys = sorted(messages.keys())[:len(messages)-3]
+            for old_key in oldest_keys:
+                del config['uplink-messages'][old_key]
+
+        # Save the updated configuration
+        self._save_config(config)
+        logger.info(f"Added uplink message: {data_str[:50]}... Success: {success} Type: {message_type}")
+
+    def _get_pending_uplink_messages(self):
+        """Get the oldest 3 pending messages from temp_data_queue.json"""
+        uplink_messages = []
+        try:
+            if not os.path.exists(self.temp_queue_file):
+                return uplink_messages
+
+            with self.file_lock:
+                with open(self.temp_queue_file, 'r') as f:
+                    if self._acquire_file_lock(f):
+                        lines = f.readlines()
+                        self._release_file_lock(f)
+                    else:
+                        return uplink_messages
+
+            # Parse messages and comments
+            current_comment = None
+            message_count = 0
+
+            for line in lines:
+                line = line.strip()
+                if line.startswith('//'):
+                    # Extract timestamp from comment
+                    if 'at ' in line:
+                        timestamp_part = line.split('at ', 1)[1]
+                        current_comment = timestamp_part
+                elif line and not line.startswith('//'):
+                    # This is a data line
+                    try:
+                        data = json.loads(line)
+                        uplink_messages.append({
+                            'timestamp': current_comment or 'Unknown',
+                            'data': json.dumps(data),
+                            'status': 'Pending',
+                            'position': message_count + 1
+                        })
+                        message_count += 1
+
+                        # Only get first 3 (oldest)
+                        if message_count >= 3:
+                            break
+
+                    except json.JSONDecodeError:
+                        continue
+
+        except Exception as e:
+            logger.error(f"Error reading pending uplink messages: {e}")
+
+        return uplink_messages
 
     def capture_location_data(self):
         """Capture current RSRP, SINR, Longitude, Latitude and append to file"""
@@ -459,10 +571,14 @@ class HestiaInfoManager(ConfigManager):
 
                         if success:
                             logger.info(f"Successfully sent data: {data}")
+                            # Add to uplink messages log
+                            self.add_uplink_message(data, True, 'Auto')
                             # Remove the sent data from queue file
                             self._update_queue_file(remaining_lines)
                         else:
                             logger.warning(f"Failed to send data: {data}, will retry later")
+                            # Add failed uplink to log
+                            self.add_uplink_message(data, False, 'Auto')
                             # Wait before retrying
                             time.sleep(10)
                     except Exception as e:

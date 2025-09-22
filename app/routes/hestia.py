@@ -50,6 +50,18 @@ def hestia_info_page():
             except Exception as e:
                 flash(f'Clear messages failed: {str(e)}')
             return redirect(url_for('hestia.hestia_info_page'))
+        elif request.form.get('action') == 'clear_uplink_messages':
+            try:
+                hestia_manager = HestiaInfoManager()
+                # Clear the pending queue file
+                import os
+                queue_file = os.path.join(hestia_manager.run_dir, 'temp_data_queue.json')
+                if os.path.exists(queue_file):
+                    os.remove(queue_file)
+                flash('Uplink queue cleared.')
+            except Exception as e:
+                flash(f'Clear uplink queue failed: {str(e)}')
+            return redirect(url_for('hestia.hestia_info_page'))
         elif request.form.get('action') == 'capture_data':
             try:
                 hestia_manager = HestiaInfoManager()
