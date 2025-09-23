@@ -6,11 +6,24 @@ import hashlib
 import logging
 import os
 import threading
-import fcntl
 import json
 import time
+import platform
 from app.models.config_manager import ConfigManager
 from time import sleep
+
+# Import platform-specific file locking
+try:
+    import fcntl  # Unix/Linux/Mac
+    HAS_FCNTL = True
+except ImportError:
+    HAS_FCNTL = False
+    
+try:
+    import msvcrt  # Windows
+    HAS_MSVCRT = True
+except ImportError:
+    HAS_MSVCRT = False
 
 logger = logging.getLogger(__name__)
 
@@ -432,18 +445,32 @@ class HestiaInfoManager(ConfigManager):
             logger.error(f"Error auto-capturing downlink data: {str(e)}")
 
     def _acquire_file_lock(self, file_handle):
-        """Acquire file lock for safe file operations"""
+        """Acquire file lock for safe file operations (cross-platform)"""
         try:
-            fcntl.flock(file_handle.fileno(), fcntl.LOCK_EX)
-            return True
+            if HAS_FCNTL:  # Unix/Linux/Mac
+                fcntl.flock(file_handle.fileno(), fcntl.LOCK_EX)
+                return True
+            elif HAS_MSVCRT:  # Windows
+                # Try to lock the file using Windows-specific method
+                msvcrt.locking(file_handle.fileno(), msvcrt.LK_LOCK, 1)
+                return True
+            else:
+                # Fallback: no file locking available
+                logger.warning("No file locking mechanism available on this platform")
+                return True
         except Exception as e:
             logger.error(f"Error acquiring file lock: {e}")
             return False
 
     def _release_file_lock(self, file_handle):
-        """Release file lock"""
+        """Release file lock (cross-platform)"""
         try:
-            fcntl.flock(file_handle.fileno(), fcntl.LOCK_UN)
+            if HAS_FCNTL:  # Unix/Linux/Mac
+                fcntl.flock(file_handle.fileno(), fcntl.LOCK_UN)
+            elif HAS_MSVCRT:  # Windows
+                # Try to unlock the file using Windows-specific method
+                msvcrt.locking(file_handle.fileno(), msvcrt.LK_UNLCK, 1)
+            # If no locking mechanism available, do nothing
         except Exception as e:
             logger.error(f"Error releasing file lock: {e}")
 
