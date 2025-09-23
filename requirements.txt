@@ -27,4 +27,3 @@ flake8==6.1.0
 # fcntl - Unix/Linux/Mac only (built-in)
 # msvcrt - Windows only (built-in)
 fcntl; platform_system != "Windows"
-msvcrt; platform_system == "Windows"
