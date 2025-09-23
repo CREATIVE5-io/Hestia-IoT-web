@@ -1,23 +1,29 @@
-# Web Framework
+# Core Web Framework
 Flask==3.0.0
 Werkzeug==3.0.1
+
+# Production Server (optional)
 gunicorn==21.2.0
 
-# Task Queue
-celery==5.3.6
-redis==5.0.1
-
-# Data Processing
-configparser==6.0.0
-
-# Utilities
-# Note: Flask-Login removed as authentication is not implemented
-
-# Serial Communication
+# Serial Communication & Hardware Interface
 pyserial==3.5
 modbus-tk==1.1.3
+
+# Data Processing & Utilities
+configparser==6.0.0
+packaging==23.2
+
+# Background Task Processing (currently used for upload worker)
+# Note: Redis/Celery not currently used but kept for future expansion
+celery==5.3.6
+redis==5.0.1
 
 # Development & Testing (optional)
 pytest==7.4.3
 pytest-flask==1.3.0
 flake8==6.1.0
+
+# Cross-platform compatibility (Windows file locking handled by built-in msvcrt)
+# fcntl - Unix/Linux/Mac only (built-in)
+# msvcrt - Windows only (built-in)
+fcntl; platform_system != "Windows"
