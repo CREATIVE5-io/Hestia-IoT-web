@@ -244,12 +244,23 @@ python run.py
 ```cmd
 # Install service
 C:\nssm\nssm.exe install HestiaInfo
+```
 
-# Configure service
-C:\nssm\nssm.exe set HestiaInfo Application C:\Python39\python.exe
-C:\nssm\nssm.exe set HestiaInfo AppParameters C:\path\to\hestia-info\run.py
-C:\nssm\nssm.exe set HestiaInfo AppDirectory C:\path\to\hestia-info
+# In the GUI:
+Application Tab:
+Path: Full path to python.exe (e.g., C:\Python312\python.exe).
+Startup directory: Directory containing run.py (e.g., C:\path\to\script\folder).
+Arguments: Full path to your script (e.g., C:\path\to\script\folder\run.py).
 
+Details Tab (optional):
+Display name: A friendly name like "Run Python Script".
+Description: "Runs run.py as a background service".
+Startup type: Ensure it's "Automatic" (default).
+
+Log on Tab (optional): Set to "Local System account" for no user dependency.
+Click Install service.
+
+```cmd
 # Start service
 C:\nssm\nssm.exe start HestiaInfo
 ```
