@@ -10,6 +10,11 @@ from app.utils.hestia_info import hestiaInfo
 hestia = Blueprint('hestia', __name__)
 _hestia_info_instance = None
 
+@hestia.route('/')
+def index():
+    """Redirect root URL to HestiaInfo page"""
+    return redirect(url_for('hestia.hestia_info_page'))
+
 @hestia.route('/hestia_info', methods=['GET', 'POST'])
 def hestia_info_page():
     """Hestia information page"""

@@ -19,17 +19,24 @@
     <nav class="sidebar-nav">
         <ul>
             <li>
-                <a href="{{ url_for('lora.lora_page') }}"
-                   class="{% if request.endpoint == 'lora.lora_page' %}active{% endif %}"
-                   data-title="LoRa Setup">
-                    📡 LoRa Setup
-                </a>
-            </li>
-            <li>
                 <a href="{{ url_for('hestia.hestia_info_page') }}" 
                    class="{% if request.endpoint == 'hestia.hestia_info_page' %}active{% endif %}"
                    data-title="Hestia Information">
                     🛰️ Hestia Information
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('hestia_fw.hestia_fw_update_page') }}" 
+                   class="{% if request.endpoint == 'hestia_fw.hestia_fw_update_page' %}active{% endif %}"
+                   data-title="Hestia FW Update">
+                    🔧 Hestia FW Update
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('lora.lora_page') }}"
+                   class="{% if request.endpoint == 'lora.lora_page' %}active{% endif %}"
+                   data-title="LoRa Setup">
+                    📡 LoRa Setup
                 </a>
             </li>
         </ul>

@@ -16,10 +16,10 @@ logger = logging.getLogger(__name__)
 
 lora_bp = Blueprint('lora', __name__)
 
-@lora_bp.route('/')
-def index():
-    """Redirect root URL to LoRa page"""
-    return redirect(url_for('lora.lora_page'))
+#@lora_bp.route('/')
+#def index():
+#    """Redirect root URL to LoRa page"""
+#    return redirect(url_for('lora.lora_page'))
 
 @lora_bp.route('/lora', methods=['GET', 'POST'])
 def lora_page():
