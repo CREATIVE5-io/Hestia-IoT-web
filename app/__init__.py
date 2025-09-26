@@ -38,10 +38,12 @@ def create_app(config_class=Config):
     from app.routes.lora import lora_bp
     from app.routes.lora_progress import lora_progress_bp
     from app.routes.hestia import hestia
+    from app.routes.hestia_fw import hestia_fw
     
     #app.register_blueprint(auth_bp)
     app.register_blueprint(lora_bp)
     app.register_blueprint(lora_progress_bp)
     app.register_blueprint(hestia)
+    app.register_blueprint(hestia_fw)
     
     return app

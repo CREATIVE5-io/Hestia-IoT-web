@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Hestia Firmware Update</title>
+    <link rel="stylesheet" href="/static/apple_style.css?v=1754543089">
+    <style>
+        /* Force CSS rules for Chrome desktop */
+        .sidebar {
+            position: fixed !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 240px !important;
+            height: 100vh !important;
+            z-index: 1000 !important;
+        }
+        .main-content {
+            margin-left: 240px !important;
+            flex: 1 !important;
+        }
+        body {
+            display: flex !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%) !important; }
+            .main-content { margin-left: 0 !important; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    {% include 'sidebar.html' %}
+    
+    <div class="main-content">
+        <div class="container mt-4"></div>
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-info">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <h1>Hestia Firmware Update</h1>
+
+        <!-- Serial Interface Configuration -->
+        <form method="POST">
+            <h2>Serial Interface Configuration</h2>
+            <input type="hidden" name="action" value="update_serial">
+            <div class="form-group">
+                <label for="serial_interface">Serial Interface:</label>
+                <input type="text" id="serial_interface" name="serial_interface" value="{{ hestia_info.serial_interface|default('/dev/ttyUSB0') }}" required>
+            </div>
+            <div class="form-group">
+                <button type="submit">Save Serial Interface</button>
+            </div>
+        </form>
+
+        <!-- Current FW Version Information -->
+        <div class='info-container'>
+            <h2>Current Firmware Version</h2>
+            <p><strong>MCU Firmware Version:</strong> <span id="firmware-version">{{ fw_version|default('Not available') }}</span></p>
+        </div>
+
+        <!-- Start Firmware Update -->
+        <div class='info-container'>
+            <h2>Start Firmware Update</h2>
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="start_firmware_update">
+                
+                <div class="form-group">
+                    <label for="firmware_file">Firmware File:</label>
+                    <input type="file" id="firmware_file" name="firmware_file" accept=".img" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="update_mode">Update Mode:</label>
+                    <select id="update_mode" name="update_mode" required>
+                        <option value="normal" selected>Normal Mode</option>
+                        <option value="bootloader">Bootloader Mode</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <button type="submit">Start Firmware Update</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Firmware Update Progress -->
+        <div class='info-container'>
+            <h2>Firmware Update Status</h2>
+            
+            <div class="form-group">
+                <label>Progress:</label>
+                <div id="progress-bar-container" style="width: 100%; background-color: #e9ecef; border-radius: 4px; height: 20px; margin: 10px 0;">
+                    <div id="progress-bar" style="width: 0%; height: 100%; background-color: #007AFF; border-radius: 4px; transition: width 0.3s ease;"></div>
+                </div>
+                <span id="progress-text">Ready for firmware update</span>
+            </div>
+            
+            <div class="form-group">
+                <label>Status:</label>
+                <div id="update-status" style="padding: 10px; border-radius: 4px; background-color: #f8f9fa; border: 1px solid #dee2e6;">
+                    <span id="status-text">No update in progress</span>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Result:</label>
+                <div id="update-result" style="padding: 10px; border-radius: 4px; background-color: #f8f9fa; border: 1px solid #dee2e6;">
+                    <span id="result-text">No results yet</span>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // Firmware update progress tracking
+            let updateInProgress = false;
+            let progressInterval = null;
+
+            function startProgressTracking() {
+                updateInProgress = true;
+                let progress = 0;
+                const progressBar = document.getElementById('progress-bar');
+                const progressText = document.getElementById('progress-text');
+                const statusText = document.getElementById('status-text');
+                const resultText = document.getElementById('result-text');
+                
+                // Reset status
+                progressBar.style.width = '0%';
+                progressBar.style.backgroundColor = '#007AFF';
+                progressText.textContent = 'Initializing firmware update...';
+                statusText.textContent = 'Upload in progress';
+                resultText.textContent = 'Update in progress...';
+                
+                // Reset result styling
+                const updateResult = document.getElementById('update-result');
+                updateResult.style.backgroundColor = '#f8f9fa';
+                updateResult.style.borderColor = '#dee2e6';
+                updateResult.style.color = 'inherit';
+                
+                // Update progress bar simulation
+                progressInterval = setInterval(() => {
+                    if (progress < 90) {
+                        progress += Math.random() * 5;
+                        progressBar.style.width = progress + '%';
+                        
+                        if (progress < 20) {
+                            progressText.textContent = 'Preparing device for update...';
+                            statusText.textContent = 'Initializing bootloader mode';
+                        } else if (progress < 40) {
+                            progressText.textContent = 'Connecting to device...';
+                            statusText.textContent = 'Establishing communication';
+                        } else if (progress < 60) {
+                            progressText.textContent = 'Uploading firmware...';
+                            statusText.textContent = 'Writing firmware data';
+                        } else if (progress < 80) {
+                            progressText.textContent = 'Verifying firmware...';
+                            statusText.textContent = 'Verifying uploaded data';
+                        } else {
+                            progressText.textContent = 'Finalizing update...';
+                            statusText.textContent = 'Completing update process';
+                        }
+                    }
+                }, 1000);
+            }
+
+            function completeProgress(success = true) {
+                updateInProgress = false;
+                if (progressInterval) {
+                    clearInterval(progressInterval);
+                    progressInterval = null;
+                }
+                
+                const progressBar = document.getElementById('progress-bar');
+                const progressText = document.getElementById('progress-text');
+                const statusText = document.getElementById('status-text');
+                const resultText = document.getElementById('result-text');
+                const updateResult = document.getElementById('update-result');
+                
+                if (success) {
+                    progressBar.style.width = '100%';
+                    progressBar.style.backgroundColor = '#28a745';
+                    progressText.textContent = 'Firmware update completed successfully!';
+                    statusText.textContent = 'Update completed';
+                    resultText.textContent = 'SUCCESS: Firmware has been updated successfully';
+                    updateResult.style.backgroundColor = '#d4edda';
+                    updateResult.style.borderColor = '#c3e6cb';
+                    updateResult.style.color = '#155724';
+                } else {
+                    progressBar.style.backgroundColor = '#dc3545';
+                    progressText.textContent = 'Firmware update failed';
+                    statusText.textContent = 'Update failed';
+                    resultText.textContent = 'ERROR: Firmware update failed. Check logs for details.';
+                    updateResult.style.backgroundColor = '#f8d7da';
+                    updateResult.style.borderColor = '#f5c6cb';
+                    updateResult.style.color = '#721c24';
+                }
+            }
+
+            // Function to poll firmware update status from backend
+            function pollFirmwareStatus() {
+                fetch('/hestia_fw_status')
+                    .then(response => response.json())
+                    .then(data => {
+                        const progressBar = document.getElementById('progress-bar');
+                        const progressText = document.getElementById('progress-text');
+                        const statusText = document.getElementById('status-text');
+                        const resultText = document.getElementById('result-text');
+                        const updateResult = document.getElementById('update-result');
+                        
+                        // Update progress bar
+                        progressBar.style.width = data.progress + '%';
+                        
+                        // Progress text shows percentage and brief status
+                        progressText.textContent = data.progress + '% - ' + data.status;
+                        
+                        // Status text shows current operation
+                        if (data.in_progress) {
+                            statusText.textContent = 'Firmware update in progress...';
+                        } else if (data.success === true) {
+                            statusText.textContent = 'Firmware update completed successfully';
+                        } else if (data.success === false) {
+                            statusText.textContent = 'Firmware update failed';
+                        } else {
+                            statusText.textContent = 'Ready for firmware update';
+                        }
+                        
+                        // Result text shows detailed outcome
+                        resultText.textContent = data.result;
+                        
+                        // Update styling based on status
+                        if (data.in_progress) {
+                            progressBar.style.backgroundColor = '#007AFF';
+                            updateResult.style.backgroundColor = '#f8f9fa';
+                            updateResult.style.borderColor = '#dee2e6';
+                            updateResult.style.color = 'inherit';
+                        } else if (data.success === true) {
+                            progressBar.style.backgroundColor = '#28a745';
+                            updateResult.style.backgroundColor = '#d4edda';
+                            updateResult.style.borderColor = '#c3e6cb';
+                            updateResult.style.color = '#155724';
+                            
+                            // Update firmware version display if new version is available
+                            if (data.new_fw_version && data.new_fw_version !== 'Unknown' && data.new_fw_version !== 'Unable to retrieve') {
+                                const firmwareVersionSpan = document.getElementById('firmware-version');
+                                if (firmwareVersionSpan) {
+                                    firmwareVersionSpan.textContent = data.new_fw_version;
+                                    firmwareVersionSpan.style.backgroundColor = '#d4edda';
+                                    firmwareVersionSpan.style.borderColor = '#c3e6cb';
+                                    firmwareVersionSpan.style.color = '#155724';
+                                    
+                                    // Reset styling after 5 seconds
+                                    setTimeout(() => {
+                                        firmwareVersionSpan.style.backgroundColor = '#f8f9fa';
+                                        firmwareVersionSpan.style.borderColor = '#dee2e6';
+                                        firmwareVersionSpan.style.color = 'inherit';
+                                    }, 5000);
+                                }
+                            }
+                        } else if (data.success === false) {
+                            progressBar.style.backgroundColor = '#dc3545';
+                            updateResult.style.backgroundColor = '#f8d7da';
+                            updateResult.style.borderColor = '#f5c6cb';
+                            updateResult.style.color = '#721c24';
+                        }
+                        
+                        // Continue polling if update is in progress
+                        if (data.in_progress) {
+                            setTimeout(pollFirmwareStatus, 1000); // Poll every second
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error polling firmware status:', error);
+                        setTimeout(pollFirmwareStatus, 2000); // Retry after 2 seconds
+                    });
+            }
+
+            // Override form submission to start status polling
+            document.querySelector('form[enctype="multipart/form-data"]').addEventListener('submit', function(e) {
+                const firmwareFile = document.getElementById('firmware_file').files[0];
+                if (firmwareFile && !updateInProgress) {
+                    updateInProgress = true;
+                    // Start polling after a short delay to allow backend to start
+                    setTimeout(() => {
+                        pollFirmwareStatus();
+                    }, 1000);
+                }
+            });
+
+            // Initial status check on page load
+            pollFirmwareStatus();
+        </script>
+
+    </div>
+</body>
+</html>
