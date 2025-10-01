@@ -27,4 +27,4 @@ flake8==6.1.0
 # Cross-platform compatibility (Windows file locking handled by built-in msvcrt)
 # fcntl - Unix/Linux/Mac only (built-in)
 # msvcrt - Windows only (built-in)
-fcntl; platform_system != "Windows"
+# fcntl; platform_system != "Windows"
