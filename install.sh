@@ -5,7 +5,7 @@
 echo "🚀 Installing LoRa Setup Application..."
 
 # Create virtual environment if it doesn't exist
-if [ ! -d "venv" ]; then
+if [ ! -d ".venv" ]; then
     echo "📦 Creating virtual environment..."
     python3 -m venv .venv
 fi
@@ -88,7 +88,7 @@ After=network.target redis-server.service
 Type=simple
 User=$USER
 WorkingDirectory=$PROJECT_DIR
-ExecStart=$PROJECT_DIR/.venv/bin/python $PROJECT_DIR/run.py
+ExecStart=$PROJECT_DIR/.venv/bin/python3 $PROJECT_DIR/run.py
 Restart=always
 Environment=FLASK_ENV=production
 
@@ -114,7 +114,7 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
     <string>com.hestia-iot-web</string>
     <key>ProgramArguments</key>
     <array>
-        <string>$PROJECT_DIR/.venv/bin/python</string>
+        <string>$PROJECT_DIR/.venv/bin/python3</string>
         <string>$PROJECT_DIR/run.py</string>
     </array>
     <key>WorkingDirectory</key>
