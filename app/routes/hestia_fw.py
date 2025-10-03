@@ -27,40 +27,78 @@ firmware_update_status = {
 }
 
 def find_pymdfu_executable():
-    """Find the pymdfu executable, handling Windows path issues."""
-    # First try to find pymdfu in PATH
+    """Find the pymdfu executable, handling virtual environments and cross-platform issues."""
+    # For macOS/Linux virtual environments, try venv-specific paths first
+    if sys.platform in ['darwin', 'linux']:
+        # Check if we're in a virtual environment
+        if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
+            logger.info("Detected virtual environment, checking venv-specific paths")
+
+            # Try the virtual environment's bin directory
+            venv_bin = os.path.join(sys.prefix, 'bin', 'pymdfu')
+            if os.path.exists(venv_bin) and os.access(venv_bin, os.X_OK):
+                logger.info(f"Found pymdfu in virtual environment: {venv_bin}")
+                return venv_bin
+
+            # Also check the Scripts directory (some virtual envs use this)
+            venv_scripts = os.path.join(sys.prefix, 'Scripts', 'pymdfu')
+            if os.path.exists(venv_scripts) and os.access(venv_scripts, os.X_OK):
+                logger.info(f"Found pymdfu in virtual environment Scripts: {venv_scripts}")
+                return venv_scripts
+
+    # Try to find pymdfu in PATH (works for system installations)
     pymdfu_path = shutil.which('pymdfu')
     if pymdfu_path:
+        logger.info(f"Found pymdfu in PATH: {pymdfu_path}")
         return pymdfu_path
 
     # On Windows, try with .exe extension
     if sys.platform == 'win32':
         pymdfu_path = shutil.which('pymdfu.exe')
         if pymdfu_path:
+            logger.info(f"Found pymdfu.exe in PATH: {pymdfu_path}")
             return pymdfu_path
 
-    # Try to find it in Python Scripts directory
-    if sys.platform == 'win32':
+        # Try to find it in Python Scripts directory
         python_scripts = os.path.join(os.path.dirname(sys.executable), 'Scripts')
         pymdfu_exe = os.path.join(python_scripts, 'pymdfu.exe')
         if os.path.exists(pymdfu_exe):
+            logger.info(f"Found pymdfu in Python Scripts: {pymdfu_exe}")
             return pymdfu_exe
 
         pymdfu_script = os.path.join(python_scripts, 'pymdfu')
         if os.path.exists(pymdfu_script):
+            logger.info(f"Found pymdfu script in Python Scripts: {pymdfu_script}")
             return pymdfu_script
 
-    # Try using python -m pymdfu as fallback
+    # Try using python -m pymdfu as fallback (this should work in virtual environments)
     try:
+        logger.info("Testing 'python -m pymdfu' as fallback")
         # Test if pymdfu module can be imported and run
         result = subprocess.run([sys.executable, '-m', 'pymdfu', '--help'],
                               capture_output=True, text=True, timeout=10)
         if result.returncode == 0:
+            logger.info("Successfully verified 'python -m pymdfu' works")
             return [sys.executable, '-m', 'pymdfu']
-    except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError):
-        pass
+    except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError) as e:
+        logger.warning(f"Failed to verify 'python -m pymdfu': {e}")
+
+    # macOS/Linux specific: Try common installation paths
+    if sys.platform in ['darwin', 'linux']:
+        common_paths = [
+            '/usr/local/bin/pymdfu',
+            '/opt/homebrew/bin/pymdfu',  # macOS Homebrew on Apple Silicon
+            '/usr/bin/pymdfu',
+            os.path.expanduser('~/.local/bin/pymdfu'),  # User installation
+        ]
+
+        for path in common_paths:
+            if os.path.exists(path) and os.access(path, os.X_OK):
+                logger.info(f"Found pymdfu at common path: {path}")
+                return path
 
     # If all else fails, return 'pymdfu' and let subprocess handle the error
+    logger.warning("Could not find pymdfu executable, falling back to 'pymdfu' in PATH")
     return 'pymdfu'
 
 @hestia_fw.route('/hestia_fw_update', methods=['GET', 'POST'])
