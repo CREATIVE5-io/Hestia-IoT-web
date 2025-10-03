@@ -358,20 +358,66 @@ def hestia_fw_update_page():
     hestia_manager = HestiaInfoManager()
     hestia_info = hestia_manager.read_hestia_info()
     
-    # Try to get firmware version on page load
-    fw_version = 'Click "Get Firmware Version" to retrieve'
+    # Try to get firmware version on page load with timeout protection
+    fw_version = 'Not available'
     try:
         serial_interface = hestia_info.get('serial_interface', '/dev/ttyUSB0')
-        ntn_dongle = hestia(port=serial_interface, dl_callback=lambda d, l: None)
-        if ntn_dongle.set_password((0, 0, 0, 0)):
-            retrieved_version = ntn_dongle.fw_ver()
-            if retrieved_version:
-                fw_version = retrieved_version
-        ntn_dongle.stop()
+
+        # Use threading-based timeout to prevent hanging if device is in bootloader mode
+        import threading
+        import queue
+
+        def get_firmware_version_worker(q, serial_interface):
+            """Worker function to get firmware version in separate thread"""
+            try:
+                ntn_dongle = hestia(port=serial_interface, dl_callback=lambda d, l: None)
+
+                if ntn_dongle.set_password((0, 0, 0, 0)):
+                    retrieved_version = ntn_dongle.fw_ver()
+                    if retrieved_version:
+                        q.put(('success', retrieved_version))
+                    else:
+                        q.put(('success', None))
+                else:
+                    q.put(('failed', None))
+
+                ntn_dongle.stop()
+            except Exception as e:
+                logger.warning(f"Worker thread exception: {e}")
+                q.put(('error', str(e)))
+
+        # Create queue for thread communication
+        result_queue = queue.Queue()
+
+        # Start worker thread
+        logger.info("Starting firmware version check in background thread...")
+        worker_thread = threading.Thread(
+            target=get_firmware_version_worker,
+            args=(result_queue, serial_interface),
+            daemon=True
+        )
+        worker_thread.start()
+
+        # Wait for result with timeout
+        try:
+            status, result = result_queue.get(timeout=5.0)  # 5-second timeout
+            logger.info(f"Thread completed with status: {status}, result: {result}")
+
+            if status == 'success' and result:
+                fw_version = result
+            elif status == 'success':
+                fw_version = 'Version not available'
+            else:
+                fw_version = 'Unable to connect'
+
+        except queue.Empty:
+            logger.warning("Firmware version check timed out after 5 seconds")
+            fw_version = 'Unable to connect'
+
     except Exception as e:
-        logger.debug(f"Failed to get FW version on page load: {e}")
+        logger.warning(f"Failed to get FW version on page load: {e}")
         fw_version = 'Unable to connect'
-    
+
     return render_template('hestia_fw_update.html', hestia_info=hestia_info, fw_version=fw_version)
 
 @hestia_fw.route('/hestia_fw_status', methods=['GET'])
@@ -379,3 +425,4 @@ def firmware_update_status_api():
     """API endpoint to get current firmware update status"""
     global firmware_update_status
     return firmware_update_status
+
