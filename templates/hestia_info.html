@@ -383,11 +383,18 @@
                         for (var i = 0; i < hexData.length; i += 2) {
                             decodedString += String.fromCharCode(parseInt(hexData.substr(i, 2), 16));
                         }
-                        var parsedData = JSON.parse(decodedString);
-                        messagesHTML += '<div style="font-family: monospace; font-size: 13px; color: #007AFF; background: #f8f8f8; padding: 4px; border-radius: 2px; margin-bottom: 3px;">';
-                        //messagesHTML += JSON.stringify(parsedData, null, 2).replace(/\n/g, '<br>').replace(/ /g, '&nbsp;');
-                        messagesHTML += JSON.stringify(parsedData);
-                        messagesHTML += '</div>';
+                        try {
+                            var parsedData = JSON.parse(decodedString);
+                            messagesHTML += '<div style="font-family: monospace; font-size: 13px; color: #007AFF; background: #f8f8f8; padding: 4px; border-radius: 2px; margin-bottom: 3px;">';
+                            //messagesHTML += JSON.stringify(parsedData, null, 2).replace(/\n/g, '<br>').replace(/ /g, '&nbsp;');
+                            messagesHTML += JSON.stringify(parsedData);
+                            messagesHTML += '</div>';
+                        } catch (e) {
+                            // If JSON parsing fails, just show the decoded string
+                            messagesHTML += '<div style="font-family: monospace; font-size: 13px; color: #007AFF; background: #f8f8f8; padding: 4px; border-radius: 2px; margin-bottom: 3px;">';
+                            messagesHTML += decodedString;
+                            messagesHTML += '</div>';
+                        }
                     }
                 } catch (e) {
                     // If decoding fails, just show the raw data (already shown above)
