@@ -11,6 +11,7 @@ import subprocess
 import sys
 import shutil
 import threading
+import queue
 from time import sleep
 
 logger = logging.getLogger(__name__)
@@ -364,8 +365,6 @@ def hestia_fw_update_page():
         serial_interface = hestia_info.get('serial_interface', '/dev/ttyUSB0')
 
         # Use threading-based timeout to prevent hanging if device is in bootloader mode
-        import threading
-        import queue
 
         def get_firmware_version_worker(q, serial_interface):
             """Worker function to get firmware version in separate thread"""
