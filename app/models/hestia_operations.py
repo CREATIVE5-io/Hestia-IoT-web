@@ -566,7 +566,12 @@ class hestia(threading.Thread):
                             self.reset_callback()
                         else:
                             valid_passwd = self.set_password((0, 0, 0, 0))
-                        sleep(1)
+                            if not valid_passwd:
+                                logger.error(f'Failed to reset Password, trying to restart Modbus connection')
+                                if not self.restart():
+                                    logger.error(f'Failed to restart Modbus connection, will retry in 5 seconds')
+                        sleep(5)
+                        pass
                     else:
                         logger.debug(f'Downlink data length: {data_len}')
                         sleep(1)
